@@ -1,0 +1,469 @@
+@page "/projects/edit/{id:int}"
+@using WebTimeSheetManagement.Services.Interfaces
+@using WebTimeSheetManagement.Models
+@inject IProjectService ProjectService
+@inject NavigationManager Navigation
+
+<PageTitle>Edit Project - TimeSheet Management</PageTitle>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h1>Edit Project</h1>
+                <button class="btn btn-secondary" @onclick="GoBack">
+                    <i class="fas fa-arrow-left"></i> Back to Projects
+                </button>
+            </div>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="text-center">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p>Loading project...</p>
+        </div>
+    }
+    else if (project == null)
+    {
+        <div class="alert alert-danger">
+            <h4>Project Not Found</h4>
+            <p>The requested project could not be found or you don't have permission to edit it.</p>
+            <button class="btn btn-primary" @onclick="GoBack">Go Back</button>
+        </div>
+    }
+    else
+    {
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Edit Project Details</h5>
+                        <small class="text-muted">
+                            Created: @project.CreatedOn.ToString("MM/dd/yyyy") |
+                            Status:
+                            @if (project.IsActive)
+                            {
+                                <span class="badge bg-success">Active</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">Inactive</span>
+                            }
+                        </small>
+                    </div>
+                    <div class="card-body">
+                        <EditForm Model="project" OnValidSubmit="HandleValidSubmit" OnInvalidSubmit="HandleInvalidSubmit">
+                            <DataAnnotationsValidator />
+                            <ValidationSummary class="alert alert-danger" />
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="projectCode" class="form-label">Project Code <span
+                                                class="text-danger">*</span></label>
+                                        <InputText @bind-Value="project.ProjectCode" class="form-control"
+                                            id="projectCode" />
+                                        <div class="form-text">Unique identifier for the project</div>
+                                        <ValidationMessage For="@(() => project.ProjectCode)" class="text-danger" />
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="projectName" class="form-label">Project Name <span
+                                                class="text-danger">*</span></label>
+                                        <InputText @bind-Value="project.ProjectName" class="form-control"
+                                            id="projectName" />
+                                        <ValidationMessage For="@(() => project.ProjectName)" class="text-danger" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <div class="mb-3">
+                                        <label for="description" class="form-label">Description</label>
+                                        <InputTextArea @bind-Value="project.Description" class="form-control"
+                                            id="description" rows="3"
+                                            placeholder="Describe the project objectives and scope..." />
+                                        <ValidationMessage For="@(() => project.Description)" class="text-danger" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="industry" class="form-label">Nature of Industry <span
+                                                class="text-danger">*</span></label>
+                                        <InputSelect @bind-Value="project.NatureOfIndustry" class="form-select"
+                                            id="industry">
+                                            <option value="">Select Industry...</option>
+                                            <option value="Technology">Technology</option>
+                                            <option value="Healthcare">Healthcare</option>
+                                            <option value="Finance">Finance</option>
+                                            <option value="Education">Education</option>
+                                            <option value="Manufacturing">Manufacturing</option>
+                                            <option value="Retail">Retail</option>
+                                            <option value="Real Estate">Real Estate</option>
+                                            <option value="Transportation">Transportation</option>
+                                            <option value="Energy">Energy</option>
+                                            <option value="Entertainment">Entertainment</option>
+                                            <option value="Other">Other</option>
+                                        </InputSelect>
+                                        <ValidationMessage For="@(() => project.NatureOfIndustry)" class="text-danger" />
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="status" class="form-label">Status</label>
+                                        <InputSelect @bind-Value="project.IsActive" class="form-select" id="status">
+                                            <option value="true">Active</option>
+                                            <option value="false">Inactive</option>
+                                        </InputSelect>
+                                        <div class="form-text">Inactive projects cannot be used for new timesheets</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="startDate" class="form-label">Start Date</label>
+                                        <InputDate @bind-Value="project.StartDate" class="form-control" id="startDate" />
+                                        <ValidationMessage For="@(() => project.StartDate)" class="text-danger" />
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="endDate" class="form-label">End Date</label>
+                                        <InputDate @bind-Value="project.EndDate" class="form-control" id="endDate" />
+                                        <ValidationMessage For="@(() => project.EndDate)" class="text-danger" />
+                                        <div class="form-text">Leave empty if project is ongoing</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="clientName" class="form-label">Client Name</label>
+                                        <InputText @bind-Value="project.ClientName" class="form-control" id="clientName" />
+                                        <ValidationMessage For="@(() => project.ClientName)" class="text-danger" />
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="budget" class="form-label">Budget</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text">$</span>
+                                            <InputNumber @bind-Value="project.Budget" class="form-control" id="budget"
+                                                min="0" step="0.01" />
+                                        </div>
+                                        <ValidationMessage For="@(() => project.Budget)" class="text-danger" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            @if (errorMessage != null)
+                            {
+                                <div class="alert alert-danger">
+                                    @errorMessage
+                                </div>
+                            }
+
+                            @if (successMessage != null)
+                            {
+                                <div class="alert alert-success">
+                                    @successMessage
+                                </div>
+                            }
+
+                            <div class="d-flex justify-content-between">
+                                <button type="button" class="btn btn-secondary" @onclick="GoBack">Cancel</button>
+                                <div>
+                                    <button type="submit" class="btn btn-primary me-2" disabled="@isSubmitting">
+                                        @if (isSubmitting)
+                                        {
+                                            <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                        }
+                                        <i class="fas fa-save"></i> Save Changes
+                                    </button>
+                                    @if (project.IsActive)
+                                    {
+                                        <button type="button" class="btn btn-warning" @onclick="DeactivateProject"
+                                            disabled="@isSubmitting">
+                                            <i class="fas fa-pause"></i> Deactivate
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <button type="button" class="btn btn-success" @onclick="ActivateProject"
+                                            disabled="@isSubmitting">
+                                            <i class="fas fa-play"></i> Activate
+                                        </button>
+                                    }
+                                </div>
+                            </div>
+                        </EditForm>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h6>Project Information</h6>
+                    </div>
+                    <div class="card-body">
+                        <dl class="row">
+                            <dt class="col-sm-5">Project ID:</dt>
+                            <dd class="col-sm-7">@project.ProjectId</dd>
+
+                            <dt class="col-sm-5">Created:</dt>
+                            <dd class="col-sm-7">@project.CreatedOn.ToString("MM/dd/yyyy HH:mm")</dd>
+
+                            <dt class="col-sm-5">Status:</dt>
+                            <dd class="col-sm-7">
+                                @if (project.IsActive)
+                                {
+                                    <span class="badge bg-success">Active</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">Inactive</span>
+                                }
+                            </dd>
+
+                            @if (project.StartDate.HasValue)
+                            {
+                                <dt class="col-sm-5">Duration:</dt>
+                                <dd class="col-sm-7">
+                                    @if (project.EndDate.HasValue)
+                                    {
+                                        <text>@((project.EndDate.Value - project.StartDate.Value).Days) days</text>
+                                    }
+                                    else
+                                    {
+                                        <text>@((DateTime.Now - project.StartDate.Value).Days) days (ongoing)</text>
+                                    }
+                                </dd>
+                            }
+
+                            @if (project.Budget.HasValue && project.Budget > 0)
+                            {
+                                <dt class="col-sm-5">Budget:</dt>
+                                <dd class="col-sm-7">
+                                    <strong class="text-success">$@project.Budget.Value.ToString("F2")</strong>
+                                </dd>
+                            }
+                        </dl>
+                    </div>
+                </div>
+
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h6>Project Usage</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row text-center">
+                            <div class="col-6">
+                                <h6 class="text-muted">Total Hours</h6>
+                                <h4 class="text-primary">@totalHours</h4>
+                                <small class="text-muted">logged</small>
+                            </div>
+                            <div class="col-6">
+                                <h6 class="text-muted">Total Expenses</h6>
+                                <h4 class="text-success">$@totalExpenses.ToString("F2")</h4>
+                                <small class="text-muted">spent</small>
+                            </div>
+                        </div>
+
+                        <hr />
+
+                        <div class="small text-muted">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Statistics are calculated from all associated timesheets and expenses.
+                        </div>
+                    </div>
+                </div>
+
+                @if (!project.IsActive)
+                {
+                    <div class="card mt-3 border-warning">
+                        <div class="card-header bg-warning text-dark">
+                            <h6 class="mb-0">⚠️ Inactive Project</h6>
+                        </div>
+                        <div class="card-body">
+                            <p class="mb-0">
+                                This project is inactive and cannot be used for new timesheets or expenses.
+                                Activate it to resume normal operations.
+                            </p>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private Project? project;
+    private bool isLoading = true;
+    private bool isSubmitting = false;
+    private string? errorMessage;
+    private string? successMessage;
+    private int totalHours = 0;
+    private decimal totalExpenses = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadProject();
+        await LoadProjectStatistics();
+    }
+
+    private async Task LoadProject()
+    {
+        try
+        {
+            project = await ProjectService.GetProjectByIdAsync(Id);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error loading project: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task LoadProjectStatistics()
+    {
+        try
+        {
+            // TODO: Implement these methods in ProjectService
+            // totalHours = await ProjectService.GetTotalHoursByProjectAsync(Id);
+            // totalExpenses = await ProjectService.GetTotalExpensesByProjectAsync(Id);
+
+            // Placeholder values for now
+            totalHours = 0;
+            totalExpenses = 0;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading project statistics: {ex.Message}");
+        }
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        await SaveProject();
+    }
+
+    private async Task HandleInvalidSubmit()
+    {
+        errorMessage = "Please correct the validation errors before saving.";
+    }
+
+    private async Task SaveProject()
+    {
+        if (project == null) return;
+
+        if (string.IsNullOrEmpty(project.ProjectCode))
+        {
+            errorMessage = "Project Code is required.";
+            return;
+        }
+
+        if (string.IsNullOrEmpty(project.ProjectName))
+        {
+            errorMessage = "Project Name is required.";
+            return;
+        }
+
+        if (string.IsNullOrEmpty(project.NatureOfIndustry))
+        {
+            errorMessage = "Nature of Industry is required.";
+            return;
+        }
+
+        if (project.EndDate.HasValue && project.StartDate.HasValue && project.EndDate < project.StartDate)
+        {
+            errorMessage = "End Date cannot be earlier than Start Date.";
+            return;
+        }
+
+        isSubmitting = true;
+        errorMessage = null;
+        successMessage = null;
+
+        try
+        {
+            // Check if project code already exists (excluding current project)
+            var existingProject = await ProjectService.GetProjectByCodeAsync(project.ProjectCode);
+            if (existingProject != null && existingProject.ProjectId != project.ProjectId)
+            {
+                errorMessage = $"Project with code '{project.ProjectCode}' already exists.";
+                return;
+            }
+
+            // Update the project
+            await ProjectService.UpdateProjectAsync(project);
+            successMessage = "Project updated successfully!";
+
+            // Refresh the project data
+            await LoadProject();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error saving project: {ex.Message}";
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+
+    private async Task DeactivateProject()
+    {
+        if (project == null) return;
+
+        try
+        {
+            await ProjectService.DeactivateProjectAsync(project.ProjectId);
+            project.IsActive = false;
+            successMessage = "Project deactivated successfully!";
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error deactivating project: {ex.Message}";
+        }
+    }
+
+    private async Task ActivateProject()
+    {
+        if (project == null) return;
+
+        try
+        {
+            await ProjectService.ActivateProjectAsync(project.ProjectId);
+            project.IsActive = true;
+            successMessage = "Project activated successfully!";
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error activating project: {ex.Message}";
+        }
+    }
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo("/projects");
+    }
+}

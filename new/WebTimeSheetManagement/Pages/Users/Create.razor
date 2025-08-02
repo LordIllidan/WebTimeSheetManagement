@@ -1,0 +1,465 @@
+@page "/users/create"
+@using WebTimeSheetManagement.Services.Interfaces
+@using WebTimeSheetManagement.Models
+@inject IUserService UserService
+@inject IRoleService RoleService
+@inject NavigationManager Navigation
+
+<PageTitle>Create User - TimeSheet Management</PageTitle>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h1>Create New User</h1>
+                <button class="btn btn-secondary" @onclick="GoBack">
+                    <i class="fas fa-arrow-left"></i> Back to Users
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5>User Details</h5>
+                </div>
+                <div class="card-body">
+                    <EditForm Model="user" OnValidSubmit="HandleValidSubmit" OnInvalidSubmit="HandleInvalidSubmit">
+                        <DataAnnotationsValidator />
+                        <ValidationSummary class="alert alert-danger" />
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="name" class="form-label">Full Name <span
+                                            class="text-danger">*</span></label>
+                                    <InputText @bind-Value="user.Name" class="form-control" id="name"
+                                        placeholder="Enter full name" />
+                                    <ValidationMessage For="@(() => user.Name)" class="text-danger" />
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="username" class="form-label">Username <span
+                                            class="text-danger">*</span></label>
+                                    <InputText @bind-Value="user.Username" class="form-control" id="username"
+                                        placeholder="Enter username" />
+                                    <div class="form-text">Must be unique, minimum 6 characters</div>
+                                    <ValidationMessage For="@(() => user.Username)" class="text-danger" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="email" class="form-label">Email Address <span
+                                            class="text-danger">*</span></label>
+                                    <InputText @bind-Value="user.Email" class="form-control" id="email" type="email"
+                                        placeholder="Enter email address" />
+                                    <ValidationMessage For="@(() => user.Email)" class="text-danger" />
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="mobileNumber" class="form-label">Mobile Number</label>
+                                    <InputText @bind-Value="user.MobileNumber" class="form-control" id="mobileNumber"
+                                        placeholder="Enter mobile number" />
+                                    <ValidationMessage For="@(() => user.MobileNumber)" class="text-danger" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="password" class="form-label">Password <span
+                                            class="text-danger">*</span></label>
+                                    <InputText @bind-Value="user.Password" class="form-control" id="password"
+                                        type="password" placeholder="Enter password" />
+                                    <div class="form-text">Minimum 8 characters, include uppercase, lowercase, and
+                                        number</div>
+                                    <ValidationMessage For="@(() => user.Password)" class="text-danger" />
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="confirmPassword" class="form-label">Confirm Password <span
+                                            class="text-danger">*</span></label>
+                                    <InputText @bind-Value="confirmPassword" class="form-control" id="confirmPassword"
+                                        type="password" placeholder="Confirm password" />
+                                    <ValidationMessage For="@(() => confirmPassword)" class="text-danger" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="gender" class="form-label">Gender</label>
+                                    <InputSelect @bind-Value="user.Gender" class="form-select" id="gender">
+                                        <option value="">Select Gender...</option>
+                                        <option value="Male">Male</option>
+                                        <option value="Female">Female</option>
+                                        <option value="Other">Other</option>
+                                        <option value="Prefer not to say">Prefer not to say</option>
+                                    </InputSelect>
+                                    <ValidationMessage For="@(() => user.Gender)" class="text-danger" />
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="designation" class="form-label">Designation</label>
+                                    <InputText @bind-Value="user.Designation" class="form-control" id="designation"
+                                        placeholder="Job title or designation" />
+                                    <ValidationMessage For="@(() => user.Designation)" class="text-danger" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="department" class="form-label">Department</label>
+                                    <InputSelect @bind-Value="user.Department" class="form-select" id="department">
+                                        <option value="">Select Department...</option>
+                                        <option value="IT">Information Technology</option>
+                                        <option value="HR">Human Resources</option>
+                                        <option value="Finance">Finance</option>
+                                        <option value="Marketing">Marketing</option>
+                                        <option value="Sales">Sales</option>
+                                        <option value="Operations">Operations</option>
+                                        <option value="Other">Other</option>
+                                    </InputSelect>
+                                    <ValidationMessage For="@(() => user.Department)" class="text-danger" />
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="roleId" class="form-label">User Role <span
+                                            class="text-danger">*</span></label>
+                                    <InputSelect @bind-Value="selectedRoleId" class="form-select" id="roleId">
+                                        <option value="0">Select Role...</option>
+                                        @if (roles != null)
+                                        {
+                                            @foreach (var role in roles)
+                                            {
+                                                <option value="@role.RoleId">@role.RoleName</option>
+                                            }
+                                        }
+                                    </InputSelect>
+                                    <ValidationMessage For="@(() => selectedRoleId)" class="text-danger" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="mb-3">
+                                    <div class="form-check">
+                                        <InputCheckbox @bind-Value="user.IsActive" class="form-check-input"
+                                            id="isActive" />
+                                        <label class="form-check-label" for="isActive">
+                                            Active User
+                                        </label>
+                                        <div class="form-text">Inactive users cannot log in to the system</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        @if (errorMessage != null)
+                        {
+                            <div class="alert alert-danger">
+                                @errorMessage
+                            </div>
+                        }
+
+                        <div class="d-flex justify-content-between">
+                            <button type="button" class="btn btn-secondary" @onclick="GoBack">Cancel</button>
+                            <button type="submit" class="btn btn-primary" disabled="@isSubmitting">
+                                @if (isSubmitting)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                }
+                                <i class="fas fa-user-plus"></i> Create User
+                            </button>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6>User Guidelines</h6>
+                </div>
+                <div class="card-body">
+                    <h6>Required Fields:</h6>
+                    <ul class="list-unstyled">
+                        <li><i class="fas fa-asterisk text-danger me-2" style="font-size: 8px;"></i>Full Name</li>
+                        <li><i class="fas fa-asterisk text-danger me-2" style="font-size: 8px;"></i>Username (unique)
+                        </li>
+                        <li><i class="fas fa-asterisk text-danger me-2" style="font-size: 8px;"></i>Email Address</li>
+                        <li><i class="fas fa-asterisk text-danger me-2" style="font-size: 8px;"></i>Password</li>
+                        <li><i class="fas fa-asterisk text-danger me-2" style="font-size: 8px;"></i>User Role</li>
+                    </ul>
+
+                    <hr />
+
+                    <h6>Password Requirements:</h6>
+                    <ul class="list-unstyled small">
+                        <li><i class="fas fa-check text-success me-2"></i>Minimum 8 characters</li>
+                        <li><i class="fas fa-check text-success me-2"></i>At least one uppercase letter</li>
+                        <li><i class="fas fa-check text-success me-2"></i>At least one lowercase letter</li>
+                        <li><i class="fas fa-check text-success me-2"></i>At least one number</li>
+                    </ul>
+
+                    <hr />
+
+                    <h6>User Roles:</h6>
+                    <ul class="list-unstyled small">
+                        <li><i class="fas fa-user text-info me-2"></i><strong>Employee:</strong> Basic access</li>
+                        <li><i class="fas fa-users text-warning me-2"></i><strong>Manager:</strong> Team management</li>
+                        <li><i class="fas fa-user-cog text-danger me-2"></i><strong>Admin:</strong> System
+                            administration</li>
+                        <li><i class="fas fa-crown text-purple me-2"></i><strong>SuperAdmin:</strong> Full access</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h6>User Preview</h6>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-3">
+                        <div class="avatar-preview">
+                            <i class="fas fa-user-circle fa-5x text-muted"></i>
+                        </div>
+                    </div>
+
+                    <dl class="row">
+                        <dt class="col-sm-4">Name:</dt>
+                        <dd class="col-sm-8">
+                            @if (!string.IsNullOrEmpty(user.Name))
+                            {
+                                <strong>@user.Name</strong>
+                            }
+                            else
+                            {
+                                <span class="text-muted">Not set</span>
+                            }
+                        </dd>
+
+                        <dt class="col-sm-4">Username:</dt>
+                        <dd class="col-sm-8">
+                            @if (!string.IsNullOrEmpty(user.Username))
+                            {
+                                <span class="badge bg-primary">@user.Username</span>
+                            }
+                            else
+                            {
+                                <span class="text-muted">Not set</span>
+                            }
+                        </dd>
+
+                        <dt class="col-sm-4">Email:</dt>
+                        <dd class="col-sm-8">
+                            @if (!string.IsNullOrEmpty(user.Email))
+                            {
+                                @user.Email
+                            }
+                            else
+                            {
+                                <span class="text-muted">Not set</span>
+                            }
+                        </dd>
+
+                        <dt class="col-sm-4">Role:</dt>
+                        <dd class="col-sm-8">
+                            @if (selectedRoleId > 0 && roles != null)
+                            {
+                                var selectedRole = roles.FirstOrDefault(r => r.RoleId == selectedRoleId);
+                                if (selectedRole != null)
+                                {
+                                    <span class="badge bg-info">@selectedRole.RoleName</span>
+                                }
+                            }
+                            else
+                            {
+                                <span class="text-muted">Not selected</span>
+                            }
+                        </dd>
+
+                        <dt class="col-sm-4">Status:</dt>
+                        <dd class="col-sm-8">
+                            @if (user.IsActive)
+                            {
+                                <span class="badge bg-success">Active</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">Inactive</span>
+                            }
+                        </dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private User user = new()
+    {
+        Name = "",
+        Username = "",
+        Email = "",
+        Password = "",
+        Gender = "",
+        MobileNumber = "",
+        Designation = "",
+        Department = "",
+        IsActive = true
+    };
+
+    private string confirmPassword = "";
+    private int selectedRoleId = 0;
+    private IEnumerable<Role>? roles;
+    private bool isSubmitting = false;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadRoles();
+    }
+
+    private async Task LoadRoles()
+    {
+        try
+        {
+            roles = await RoleService.GetAllRolesAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error loading roles: {ex.Message}";
+        }
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        await SaveUser();
+    }
+
+    private async Task HandleInvalidSubmit()
+    {
+        errorMessage = "Please correct the validation errors before submitting.";
+    }
+
+    private async Task SaveUser()
+    {
+        // Validation
+        if (string.IsNullOrEmpty(user.Name))
+        {
+            errorMessage = "Full Name is required.";
+            return;
+        }
+
+        if (string.IsNullOrEmpty(user.Username))
+        {
+            errorMessage = "Username is required.";
+            return;
+        }
+
+        if (user.Username.Length < 6)
+        {
+            errorMessage = "Username must be at least 6 characters long.";
+            return;
+        }
+
+        if (string.IsNullOrEmpty(user.Email))
+        {
+            errorMessage = "Email address is required.";
+            return;
+        }
+
+        if (string.IsNullOrEmpty(user.Password))
+        {
+            errorMessage = "Password is required.";
+            return;
+        }
+
+        if (user.Password.Length < 8)
+        {
+            errorMessage = "Password must be at least 8 characters long.";
+            return;
+        }
+
+        if (user.Password != confirmPassword)
+        {
+            errorMessage = "Password and Confirm Password do not match.";
+            return;
+        }
+
+        if (selectedRoleId == 0)
+        {
+            errorMessage = "Please select a user role.";
+            return;
+        }
+
+        isSubmitting = true;
+        errorMessage = null;
+
+        try
+        {
+            // Check if username already exists
+            var existingUser = await UserService.GetUserByUsernameAsync(user.Username);
+            if (existingUser != null)
+            {
+                errorMessage = $"Username '{user.Username}' already exists. Please choose a different username.";
+                return;
+            }
+
+            // Check if email already exists
+            var existingEmailUser = await UserService.GetUserByEmailAsync(user.Email);
+            if (existingEmailUser != null)
+            {
+                errorMessage = $"Email '{user.Email}' is already registered. Please use a different email.";
+                return;
+            }
+
+            // Set additional properties
+            user.CreatedOn = DateTime.Now;
+
+            // Create the user
+            var createdUser = await UserService.CreateUserAsync(user);
+
+            // Assign role
+            if (createdUser != null)
+            {
+                // TODO: Implement role assignment
+                // await UserService.AssignRoleAsync(createdUser.UserId, selectedRoleId);
+            }
+
+            // Navigate back to index
+            Navigation.NavigateTo("/users");
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error creating user: {ex.Message}";
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo("/users");
+    }
+}

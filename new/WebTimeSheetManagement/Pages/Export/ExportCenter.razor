@@ -1,0 +1,473 @@
+@page "/export"
+@using WebTimeSheetManagement.Services.Interfaces
+@using WebTimeSheetManagement.Models
+@inject IExportService ExportService
+@inject IUserService UserService
+@inject IProjectService ProjectService
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+
+<PageTitle>Export Center - TimeSheet Management</PageTitle>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1>
+                        <i class="fas fa-download me-2"></i>
+                        Export Center
+                    </h1>
+                    <p class="text-muted">Generate and download reports in Excel and PDF formats</p>
+                </div>
+                <button class="btn btn-secondary" @onclick="GoBack">
+                    <i class="fas fa-arrow-left"></i> Back
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Export Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="card border-primary h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-clock fa-3x text-primary mb-3"></i>
+                    <h5>TimeSheets</h5>
+                    <p class="text-muted">Export timesheet data</p>
+                    <button class="btn btn-primary btn-sm" @onclick="() => ShowExportModal(\"timesheets\")">
+                        <i class="fas fa-download"></i> Export
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="card border-success h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-receipt fa-3x text-success mb-3"></i>
+                    <h5>Expenses</h5>
+                    <p class="text-muted">Export expense reports</p>
+                    <button class="btn btn-success btn-sm" @onclick="() => ShowExportModal(\"expenses\")">
+                        <i class="fas fa-download"></i> Export
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="card border-info h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-users fa-3x text-info mb-3"></i>
+                    <h5>Users</h5>
+                    <p class="text-muted">Export user data</p>
+                    <button class="btn btn-info btn-sm" @onclick="() => ShowExportModal(\"users\")">
+                        <i class="fas fa-download"></i> Export
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="card border-warning h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-project-diagram fa-3x text-warning mb-3"></i>
+                    <h5>Projects</h5>
+                    <p class="text-muted">Export project data</p>
+                    <button class="btn btn-warning btn-sm" @onclick="() => ShowExportModal(\"projects\")">
+                        <i class="fas fa-download"></i> Export
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Master Reports -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-chart-bar me-2"></i>Master Reports</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <div class="card border-secondary">
+                                <div class="card-body">
+                                    <h6><i class="fas fa-clock me-2"></i>Master TimeSheet Report</h6>
+                                    <p class="text-muted small">Comprehensive timesheet report with date range filtering</p>
+                                    <button class="btn btn-outline-primary btn-sm" @onclick="() => ShowMasterReportModal(\"master-timesheet\")">
+                                        <i class="fas fa-download"></i> Generate Report
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <div class="card border-secondary">
+                                <div class="card-body">
+                                    <h6><i class="fas fa-receipt me-2"></i>Master Expense Report</h6>
+                                    <p class="text-muted small">Comprehensive expense report with advanced filtering</p>
+                                    <button class="btn btn-outline-success btn-sm" @onclick="() => ShowMasterReportModal(\"master-expense\")">
+                                        <i class="fas fa-download"></i> Generate Report
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <div class="card border-secondary">
+                                <div class="card-body">
+                                    <h6><i class="fas fa-project-diagram me-2"></i>Project Summary Report</h6>
+                                    <p class="text-muted small">Detailed project analysis with time and expense data</p>
+                                    <button class="btn btn-outline-warning btn-sm" @onclick="() => ShowProjectReportModal()">
+                                        <i class="fas fa-download"></i> Generate Report
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <div class="card border-secondary">
+                                <div class="card-body">
+                                    <h6><i class="fas fa-user me-2"></i>User Activity Report</h6>
+                                    <p class="text-muted small">Individual user activity and productivity analysis</p>
+                                    <button class="btn btn-outline-info btn-sm" @onclick="() => ShowUserReportModal()">
+                                        <i class="fas fa-download"></i> Generate Report
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export History -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-history me-2"></i>Recent Exports</h5>
+                </div>
+                <div class="card-body">
+                    @if (exportHistory?.Any() == true)
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Report Type</th>
+                                        <th>File Name</th>
+                                        <th>Format</th>
+                                        <th>Generated</th>
+                                        <th>Size</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var export in exportHistory.Take(10))
+                                    {
+                                        <tr>
+                                            <td>@export.ReportType</td>
+                                            <td>@export.FileName</td>
+                                            <td><span class="badge bg-info">@export.Format</span></td>
+                                            <td>@export.GeneratedOn.ToString("MM/dd/yyyy HH:mm")</td>
+                                            <td>@export.FileSize</td>
+                                            <td>
+                                                <button class="btn btn-outline-primary btn-sm" @onclick="() => DownloadExport(export)">
+                                                    <i class="fas fa-download"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center text-muted">
+                            <i class="fas fa-file-export fa-3x mb-3"></i>
+                            <p>No recent exports found</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Export Modal -->
+@if (showExportModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5)">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Export @currentExportType.ToUpper()</h5>
+                    <button type="button" class="btn-close" @onclick="CloseModal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Export Format</label>
+                        <select @bind="selectedFormat" class="form-select">
+                            <option value="excel">Excel (.xlsx)</option>
+                            <option value="pdf">PDF (.pdf)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Date Range</label>
+                        <div class="row">
+                            <div class="col-6">
+                                <input type="date" @bind="fromDate" class="form-control" />
+                            </div>
+                            <div class="col-6">
+                                <input type="date" @bind="toDate" class="form-control" />
+                            </div>
+                        </div>
+                    </div>
+
+                    @if (currentExportType != "users")
+                    {
+                        <div class="mb-3">
+                            <label class="form-label">Filter by User</label>
+                            <select @bind="selectedUserId" class="form-select">
+                                <option value="0">All Users</option>
+                                @if (users != null)
+                                {
+                                    @foreach (var user in users)
+                                    {
+                                        <option value="@user.UserId">@user.Name</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                    }
+
+                    @if (currentExportType != "projects" && currentExportType != "users")
+                    {
+                        <div class="mb-3">
+                            <label class="form-label">Filter by Project</label>
+                            <select @bind="selectedProjectId" class="form-select">
+                                <option value="0">All Projects</option>
+                                @if (projects != null)
+                                {
+                                    @foreach (var project in projects)
+                                    {
+                                        <option value="@project.ProjectId">@project.ProjectName</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                    }
+
+                    @if (errorMessage != null)
+                    {
+                        <div class="alert alert-danger">
+                            @errorMessage
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseModal">Cancel</button>
+                    <button type="button" class="btn btn-primary" @onclick="ProcessExport" disabled="@isExporting">
+                        @if (isExporting)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2"></span>
+                        }
+                        <i class="fas fa-download me-2"></i>
+                        Export
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (successMessage != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @successMessage
+        <button type="button" class="btn-close" @onclick="() => successMessage = null"></button>
+    </div>
+}
+
+@code {
+    private bool showExportModal = false;
+    private string currentExportType = "";
+    private string selectedFormat = "excel";
+    private DateTime fromDate = DateTime.Now.AddDays(-30);
+    private DateTime toDate = DateTime.Now;
+    private int selectedUserId = 0;
+    private int selectedProjectId = 0;
+    private bool isExporting = false;
+    private string? errorMessage;
+    private string? successMessage;
+
+    private IEnumerable<User>? users;
+    private IEnumerable<Project>? projects;
+    private IEnumerable<ExportHistoryItem>? exportHistory;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadFilterData();
+        await LoadExportHistory();
+    }
+
+    private async Task LoadFilterData()
+    {
+        try
+        {
+            users = await UserService.GetAllUsersAsync();
+            projects = await ProjectService.GetAllProjectsAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error loading filter data: {ex.Message}";
+        }
+    }
+
+    private async Task LoadExportHistory()
+    {
+        // TODO: Implement export history tracking
+        exportHistory = new List<ExportHistoryItem>
+        {
+            new() { ReportType = "TimeSheets", FileName = "timesheets_2024_01.xlsx", Format = "Excel", GeneratedOn = DateTime.Now.AddHours(-2), FileSize = "1.2 MB" },
+            new() { ReportType = "Expenses", FileName = "expenses_2024_01.xlsx", Format = "Excel", GeneratedOn = DateTime.Now.AddDays(-1), FileSize = "856 KB" }
+        };
+    }
+
+    private void ShowExportModal(string exportType)
+    {
+        currentExportType = exportType;
+        showExportModal = true;
+        errorMessage = null;
+    }
+
+    private void ShowMasterReportModal(string reportType)
+    {
+        // TODO: Implement master report modal
+        successMessage = $"Master {reportType} report feature coming soon!";
+    }
+
+    private void ShowProjectReportModal()
+    {
+        // TODO: Implement project report modal
+        successMessage = "Project summary report feature coming soon!";
+    }
+
+    private void ShowUserReportModal()
+    {
+        // TODO: Implement user report modal
+        successMessage = "User activity report feature coming soon!";
+    }
+
+    private void CloseModal()
+    {
+        showExportModal = false;
+        errorMessage = null;
+    }
+
+    private async Task ProcessExport()
+    {
+        isExporting = true;
+        errorMessage = null;
+
+        try
+        {
+            byte[] fileData;
+            string fileName;
+            string contentType;
+
+            switch (currentExportType)
+            {
+                case "timesheets":
+                    // TODO: Get filtered timesheets
+                    var timeSheets = new List<TimeSheet>(); // Placeholder
+                    fileData = await ExportService.ExportTimeSheetsToExcelAsync(timeSheets, "TimeSheets");
+                    fileName = $"timesheets_{DateTime.Now:yyyyMMdd}.xlsx";
+                    contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+                    break;
+
+                case "expenses":
+                    // TODO: Get filtered expenses
+                    var expenses = new List<Expense>(); // Placeholder
+                    fileData = await ExportService.ExportExpensesToExcelAsync(expenses, "Expenses");
+                    fileName = $"expenses_{DateTime.Now:yyyyMMdd}.xlsx";
+                    contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+                    break;
+
+                case "users":
+                    fileData = await ExportService.ExportUsersToExcelAsync(users ?? new List<User>(), "Users");
+                    fileName = $"users_{DateTime.Now:yyyyMMdd}.xlsx";
+                    contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+                    break;
+
+                case "projects":
+                    fileData = await ExportService.ExportProjectsToExcelAsync(projects ?? new List<Project>(), "Projects");
+                    fileName = $"projects_{DateTime.Now:yyyyMMdd}.xlsx";
+                    contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+                    break;
+
+                default:
+                    throw new ArgumentException("Invalid export type");
+            }
+
+            // Download file
+            await DownloadFile(fileData, fileName, contentType);
+            
+            successMessage = $"Export completed successfully! Downloaded {fileName}";
+            CloseModal();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Export failed: {ex.Message}";
+        }
+        finally
+        {
+            isExporting = false;
+        }
+    }
+
+    private async Task DownloadFile(byte[] fileData, string fileName, string contentType)
+    {
+        var base64 = Convert.ToBase64String(fileData);
+        var dataUri = $"data:{contentType};base64,{base64}";
+        
+        await JSRuntime.InvokeVoidAsync("downloadFile", dataUri, fileName);
+    }
+
+    private async Task DownloadExport(ExportHistoryItem export)
+    {
+        // TODO: Implement download from history
+        successMessage = $"Download {export.FileName} feature coming soon!";
+    }
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo("/dashboard");
+    }
+
+    public class ExportHistoryItem
+    {
+        public string ReportType { get; set; } = "";
+        public string FileName { get; set; } = "";
+        public string Format { get; set; } = "";
+        public DateTime GeneratedOn { get; set; }
+        public string FileSize { get; set; } = "";
+    }
+}
+
+<script>
+    window.downloadFile = (dataUri, filename) => {
+        const link = document.createElement('a');
+        link.href = dataUri;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+</script>

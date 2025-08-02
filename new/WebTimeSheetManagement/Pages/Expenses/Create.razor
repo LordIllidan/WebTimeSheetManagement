@@ -1,0 +1,389 @@
+@page "/expenses/create"
+@using WebTimeSheetManagement.Services.Interfaces
+@using WebTimeSheetManagement.Models
+@inject IExpenseService ExpenseService
+@inject IProjectService ProjectService
+@inject NavigationManager Navigation
+
+<PageTitle>Create Expense - TimeSheet Management</PageTitle>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h1>Create Expense Report</h1>
+                <button class="btn btn-secondary" @onclick="GoBack">
+                    <i class="fas fa-arrow-left"></i> Back to Expenses
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Expense Details</h5>
+                </div>
+                <div class="card-body">
+                    <EditForm Model="expense" OnValidSubmit="HandleValidSubmit" OnInvalidSubmit="HandleInvalidSubmit">
+                        <DataAnnotationsValidator />
+                        <ValidationSummary class="alert alert-danger" />
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="projectId" class="form-label">Project <span
+                                            class="text-danger">*</span></label>
+                                    <InputSelect @bind-Value="expense.ProjectId" class="form-select" id="projectId">
+                                        <option value="0">Select Project...</option>
+                                        @if (projects != null)
+                                        {
+                                            @foreach (var project in projects)
+                                            {
+                                                <option value="@project.ProjectId">@project.ProjectName (@project.ProjectCode)
+                                                </option>
+                                            }
+                                        }
+                                    </InputSelect>
+                                    <ValidationMessage For="@(() => expense.ProjectId)" class="text-danger" />
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="voucherId" class="form-label">Voucher/Reference ID</label>
+                                    <InputText @bind-Value="expense.VoucherId" class="form-control" id="voucherId"
+                                        placeholder="Optional reference number" />
+                                    <ValidationMessage For="@(() => expense.VoucherId)" class="text-danger" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="fromDate" class="form-label">From Date <span
+                                            class="text-danger">*</span></label>
+                                    <InputDate @bind-Value="expense.FromDate" class="form-control" id="fromDate" />
+                                    <ValidationMessage For="@(() => expense.FromDate)" class="text-danger" />
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="toDate" class="form-label">To Date <span
+                                            class="text-danger">*</span></label>
+                                    <InputDate @bind-Value="expense.ToDate" class="form-control" id="toDate" />
+                                    <ValidationMessage For="@(() => expense.ToDate)" class="text-danger" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="mb-3">
+                                    <label for="purpose" class="form-label">Purpose/Reason <span
+                                            class="text-danger">*</span></label>
+                                    <InputTextArea @bind-Value="expense.PurposeOrReason" class="form-control"
+                                        id="purpose" rows="3"
+                                        placeholder="Describe the business purpose of this expense..." />
+                                    <ValidationMessage For="@(() => expense.PurposeOrReason)" class="text-danger" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <h6 class="mb-3">Expense Categories</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="hotelBills" class="form-label">
+                                        <i class="fas fa-bed text-primary"></i> Hotel Bills
+                                    </label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">$</span>
+                                        <InputNumber @bind-Value="expense.HotelBills" class="form-control"
+                                            id="hotelBills" min="0" step="0.01" @bind:after="CalculateTotal" />
+                                    </div>
+                                    <ValidationMessage For="@(() => expense.HotelBills)" class="text-danger" />
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="travelBills" class="form-label">
+                                        <i class="fas fa-plane text-info"></i> Travel Bills
+                                    </label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">$</span>
+                                        <InputNumber @bind-Value="expense.TravelBills" class="form-control"
+                                            id="travelBills" min="0" step="0.01" @bind:after="CalculateTotal" />
+                                    </div>
+                                    <ValidationMessage For="@(() => expense.TravelBills)" class="text-danger" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="mealsBills" class="form-label">
+                                        <i class="fas fa-utensils text-warning"></i> Meals Bills
+                                    </label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">$</span>
+                                        <InputNumber @bind-Value="expense.MealsBills" class="form-control"
+                                            id="mealsBills" min="0" step="0.01" @bind:after="CalculateTotal" />
+                                    </div>
+                                    <ValidationMessage For="@(() => expense.MealsBills)" class="text-danger" />
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="otherBills" class="form-label">
+                                        <i class="fas fa-receipt text-secondary"></i> Other Bills
+                                    </label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">$</span>
+                                        <InputNumber @bind-Value="expense.OtherBills" class="form-control"
+                                            id="otherBills" min="0" step="0.01" @bind:after="CalculateTotal" />
+                                    </div>
+                                    <ValidationMessage For="@(() => expense.OtherBills)" class="text-danger" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="card bg-light">
+                                    <div class="card-body">
+                                        <div class="row text-center">
+                                            <div class="col-md-2">
+                                                <small class="text-muted">Hotel</small><br />
+                                                <strong
+                                                    class="text-primary">$@expense.HotelBills.ToString("F2")</strong>
+                                            </div>
+                                            <div class="col-md-2">
+                                                <small class="text-muted">Travel</small><br />
+                                                <strong class="text-info">$@expense.TravelBills.ToString("F2")</strong>
+                                            </div>
+                                            <div class="col-md-2">
+                                                <small class="text-muted">Meals</small><br />
+                                                <strong
+                                                    class="text-warning">$@expense.MealsBills.ToString("F2")</strong>
+                                            </div>
+                                            <div class="col-md-2">
+                                                <small class="text-muted">Other</small><br />
+                                                <strong
+                                                    class="text-secondary">$@expense.OtherBills.ToString("F2")</strong>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <small class="text-muted">Total Amount</small><br />
+                                                <h4 class="text-success mb-0">$@totalAmount.ToString("F2")</h4>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        @if (errorMessage != null)
+                        {
+                            <div class="alert alert-danger mt-3">
+                                @errorMessage
+                            </div>
+                        }
+
+                        <div class="d-flex justify-content-between mt-4">
+                            <button type="button" class="btn btn-secondary" @onclick="GoBack">Cancel</button>
+                            <div>
+                                <button type="submit" class="btn btn-primary me-2" disabled="@isSubmitting">
+                                    @if (isSubmitting)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                    }
+                                    <i class="fas fa-save"></i> Save as Draft
+                                </button>
+                                <button type="button" class="btn btn-success" @onclick="SaveAndSubmit"
+                                    disabled="@isSubmitting">
+                                    @if (isSubmitting)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                    }
+                                    <i class="fas fa-paper-plane"></i> Save & Submit
+                                </button>
+                            </div>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6>Expense Guidelines</h6>
+                </div>
+                <div class="card-body">
+                    <h6>Expense Categories:</h6>
+                    <ul class="list-unstyled">
+                        <li><i class="fas fa-bed text-primary me-2"></i><strong>Hotel:</strong> Accommodation costs</li>
+                        <li><i class="fas fa-plane text-info me-2"></i><strong>Travel:</strong> Transportation, flights,
+                            car rental</li>
+                        <li><i class="fas fa-utensils text-warning me-2"></i><strong>Meals:</strong> Business meals,
+                            client entertainment</li>
+                        <li><i class="fas fa-receipt text-secondary me-2"></i><strong>Other:</strong> Office supplies,
+                            phone bills, etc.</li>
+                    </ul>
+
+                    <hr />
+
+                    <h6>Requirements:</h6>
+                    <ul class="list-unstyled">
+                        <li><i class="fas fa-check text-success me-2"></i>Business purpose required</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Receipts for amounts > $50</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Manager approval needed</li>
+                    </ul>
+
+                    <hr />
+
+                    <div class="text-muted small">
+                        <strong>Current Status:</strong> Draft<br />
+                        <strong>Total Amount:</strong> $@totalAmount.ToString("F2")<br />
+                        <strong>Period:</strong> @expense.FromDate.ToString("MM/dd/yyyy") -
+                        @expense.ToDate.ToString("MM/dd/yyyy")
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h6>Quick Tips</h6>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled small">
+                        <li><i class="fas fa-lightbulb text-warning me-2"></i>Save as Draft to continue later</li>
+                        <li><i class="fas fa-lightbulb text-warning me-2"></i>Submit when all details are complete</li>
+                        <li><i class="fas fa-lightbulb text-warning me-2"></i>Keep receipts for future reference</li>
+                        <li><i class="fas fa-lightbulb text-warning me-2"></i>Be specific in purpose description</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private Expense expense = new()
+    {
+        FromDate = DateTime.Today,
+        ToDate = DateTime.Today,
+        PurposeOrReason = "",
+        User = new User { UserId = 1, Name = "", Username = "", Email = "", Password = "", Gender = "", MobileNumber = "" },
+        Project = new Project { ProjectId = 0, ProjectCode = "", NatureOfIndustry = "", ProjectName = "" }
+    };
+
+    private IEnumerable<Project>? projects;
+    private bool isSubmitting = false;
+    private string? errorMessage;
+    private decimal totalAmount => expense.TotalAmount;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadProjects();
+    }
+
+    private async Task LoadProjects()
+    {
+        try
+        {
+            projects = await ProjectService.GetActiveProjectsAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error loading projects: {ex.Message}";
+        }
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        await SaveExpense(false);
+    }
+
+    private async Task HandleInvalidSubmit()
+    {
+        errorMessage = "Please correct the validation errors before submitting.";
+    }
+
+    private async Task SaveAndSubmit()
+    {
+        await SaveExpense(true);
+    }
+
+    private async Task SaveExpense(bool submit)
+    {
+        if (expense.ProjectId == 0)
+        {
+            errorMessage = "Please select a project.";
+            return;
+        }
+
+        if (expense.FromDate > expense.ToDate)
+        {
+            errorMessage = "From Date cannot be later than To Date.";
+            return;
+        }
+
+        if (totalAmount == 0)
+        {
+            errorMessage = "Please enter at least one expense amount.";
+            return;
+        }
+
+        isSubmitting = true;
+        errorMessage = null;
+
+        try
+        {
+            // TODO: Get current user ID from authentication context
+            expense.UserId = 1; // Temporary hardcoded value
+
+            // Check if date range is already used
+            var isDateRangeUsed = await ExpenseService.IsDateRangeAlreadyUsedAsync(expense.FromDate, expense.ToDate,
+            expense.UserId);
+            if (isDateRangeUsed)
+            {
+                errorMessage = "An expense for this date range already exists.";
+                return;
+            }
+
+            // Create the expense
+            var createdExpense = await ExpenseService.CreateExpenseAsync(expense);
+
+            if (submit)
+            {
+                // Submit for approval
+                await ExpenseService.SubmitExpenseAsync(createdExpense.ExpenseId, expense.UserId);
+            }
+
+            // Navigate back to index
+            Navigation.NavigateTo("/expenses");
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error saving expense: {ex.Message}";
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+
+    private Task CalculateTotal()
+    {
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo("/expenses");
+    }
+}

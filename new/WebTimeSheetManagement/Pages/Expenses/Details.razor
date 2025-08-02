@@ -1,0 +1,559 @@
+@page "/expenses/{id:int}"
+@using WebTimeSheetManagement.Services.Interfaces
+@using WebTimeSheetManagement.Models
+@inject IExpenseService ExpenseService
+@inject NavigationManager Navigation
+
+<PageTitle>Expense Details - TimeSheet Management</PageTitle>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h1>Expense Details</h1>
+                <div>
+                    <button class="btn btn-secondary me-2" @onclick="GoBack">
+                        <i class="fas fa-arrow-left"></i> Back to Expenses
+                    </button>
+                    @if (expense != null && CanEdit())
+                    {
+                        <button class="btn btn-warning" @onclick="EditExpense">
+                            <i class="fas fa-edit"></i> Edit
+                        </button>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="text-center">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p>Loading expense details...</p>
+        </div>
+    }
+    else if (expense == null)
+    {
+        <div class="alert alert-danger">
+            <h4>Expense Not Found</h4>
+            <p>The requested expense could not be found.</p>
+            <button class="btn btn-primary" @onclick="GoBack">Go Back</button>
+        </div>
+    }
+    else
+    {
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5>Expense Information</h5>
+                            <span class="badge @GetStatusBadgeClass() fs-6">@expense.Status</span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <dl class="row">
+                                    <dt class="col-sm-4">Employee:</dt>
+                                    <dd class="col-sm-8">@expense.User.Name</dd>
+                                    
+                                    <dt class="col-sm-4">Project:</dt>
+                                    <dd class="col-sm-8">
+                                        <strong>@expense.Project.ProjectName</strong><br />
+                                        <small class="text-muted">@expense.Project.ProjectCode</small>
+                                    </dd>
+                                    
+                                    <dt class="col-sm-4">Period:</dt>
+                                    <dd class="col-sm-8">
+                                        @expense.FromDate.ToString("MM/dd/yyyy") - 
+                                        @expense.ToDate.ToString("MM/dd/yyyy")
+                                    </dd>
+                                    
+                                    @if (!string.IsNullOrEmpty(expense.VoucherId))
+                                    {
+                                        <dt class="col-sm-4">Voucher ID:</dt>
+                                        <dd class="col-sm-8">
+                                            <span class="badge bg-info">@expense.VoucherId</span>
+                                        </dd>
+                                    }
+                                </dl>
+                            </div>
+                            <div class="col-md-6">
+                                <dl class="row">
+                                    <dt class="col-sm-4">Total Amount:</dt>
+                                    <dd class="col-sm-8">
+                                        <h4 class="text-success mb-0">$@expense.TotalAmount.ToString("F2")</h4>
+                                    </dd>
+                                    
+                                    <dt class="col-sm-4">Created:</dt>
+                                    <dd class="col-sm-8">@expense.CreatedOn.ToString("MM/dd/yyyy HH:mm")</dd>
+                                    
+                                    @if (expense.SubmittedOn.HasValue)
+                                    {
+                                        <dt class="col-sm-4">Submitted:</dt>
+                                        <dd class="col-sm-8">@expense.SubmittedOn.Value.ToString("MM/dd/yyyy HH:mm")</dd>
+                                    }
+                                    
+                                    @if (expense.ApprovedOn.HasValue)
+                                    {
+                                        <dt class="col-sm-4">Approved:</dt>
+                                        <dd class="col-sm-8">@expense.ApprovedOn.Value.ToString("MM/dd/yyyy HH:mm")</dd>
+                                    }
+                                </dl>
+                            </div>
+                        </div>
+
+                        <h6>Expense Breakdown</h6>
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Category</th>
+                                        <th class="text-center">Amount</th>
+                                        <th class="text-center">Percentage</th>
+                                        <th class="text-center">Details</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>
+                                            <i class="fas fa-bed text-primary me-2"></i>
+                                            <strong>Hotel Bills</strong>
+                                        </td>
+                                        <td class="text-center">
+                                            @if (expense.HotelBills > 0)
+                                            {
+                                                <span class="badge bg-primary fs-6">$@expense.HotelBills.ToString("F2")</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">$0.00</span>
+                                            }
+                                        </td>
+                                        <td class="text-center">@GetCategoryPercentage(expense.HotelBills)%</td>
+                                        <td class="text-center">
+                                            @if (expense.HotelBills > 0)
+                                            {
+                                                <span class="text-success">✓</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">-</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <i class="fas fa-plane text-info me-2"></i>
+                                            <strong>Travel Bills</strong>
+                                        </td>
+                                        <td class="text-center">
+                                            @if (expense.TravelBills > 0)
+                                            {
+                                                <span class="badge bg-info fs-6">$@expense.TravelBills.ToString("F2")</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">$0.00</span>
+                                            }
+                                        </td>
+                                        <td class="text-center">@GetCategoryPercentage(expense.TravelBills)%</td>
+                                        <td class="text-center">
+                                            @if (expense.TravelBills > 0)
+                                            {
+                                                <span class="text-success">✓</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">-</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <i class="fas fa-utensils text-warning me-2"></i>
+                                            <strong>Meals Bills</strong>
+                                        </td>
+                                        <td class="text-center">
+                                            @if (expense.MealsBills > 0)
+                                            {
+                                                <span class="badge bg-warning text-dark fs-6">$@expense.MealsBills.ToString("F2")</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">$0.00</span>
+                                            }
+                                        </td>
+                                        <td class="text-center">@GetCategoryPercentage(expense.MealsBills)%</td>
+                                        <td class="text-center">
+                                            @if (expense.MealsBills > 0)
+                                            {
+                                                <span class="text-success">✓</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">-</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <i class="fas fa-receipt text-secondary me-2"></i>
+                                            <strong>Other Bills</strong>
+                                        </td>
+                                        <td class="text-center">
+                                            @if (expense.OtherBills > 0)
+                                            {
+                                                <span class="badge bg-secondary fs-6">$@expense.OtherBills.ToString("F2")</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">$0.00</span>
+                                            }
+                                        </td>
+                                        <td class="text-center">@GetCategoryPercentage(expense.OtherBills)%</td>
+                                        <td class="text-center">
+                                            @if (expense.OtherBills > 0)
+                                            {
+                                                <span class="text-success">✓</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">-</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                </tbody>
+                                <tfoot class="table-light">
+                                    <tr>
+                                        <th>Total</th>
+                                        <th class="text-center">
+                                            <span class="badge bg-success fs-6">$@expense.TotalAmount.ToString("F2")</span>
+                                        </th>
+                                        <th class="text-center">100%</th>
+                                        <th class="text-center">
+                                            <span class="text-success">✓</span>
+                                        </th>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+
+                        <div class="mt-4">
+                            <h6>Business Purpose</h6>
+                            <div class="card">
+                                <div class="card-body">
+                                    <p class="mb-0">@expense.PurposeOrReason</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(expense.ApprovalComment))
+                        {
+                            <div class="mt-4">
+                                <h6>Approval Comment</h6>
+                                <div class="card border-@GetApprovalCardBorderClass()">
+                                    <div class="card-body">
+                                        <p class="mb-0">@expense.ApprovalComment</p>
+                                        @if (expense.ApprovedOn.HasValue)
+                                        {
+                                            <small class="text-muted">
+                                                - @expense.ApprovedOn.Value.ToString("MM/dd/yyyy HH:mm")
+                                            </small>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h6>Actions</h6>
+                    </div>
+                    <div class="card-body">
+                        @if (CanEdit())
+                        {
+                            <button class="btn btn-warning btn-sm w-100 mb-2" @onclick="EditExpense">
+                                <i class="fas fa-edit"></i> Edit Expense
+                            </button>
+                        }
+                        
+                        @if (CanSubmit())
+                        {
+                            <button class="btn btn-success btn-sm w-100 mb-2" @onclick="SubmitForApproval">
+                                <i class="fas fa-paper-plane"></i> Submit for Approval
+                            </button>
+                        }
+                        
+                        @if (CanApprove())
+                        {
+                            <button class="btn btn-success btn-sm w-100 mb-2" @onclick="ApproveExpense">
+                                <i class="fas fa-check"></i> Approve
+                            </button>
+                            <button class="btn btn-danger btn-sm w-100 mb-2" @onclick="RejectExpense">
+                                <i class="fas fa-times"></i> Reject
+                            </button>
+                        }
+
+                        <button class="btn btn-info btn-sm w-100 mb-2" @onclick="ViewAuditHistory">
+                            <i class="fas fa-history"></i> View History
+                        </button>
+
+                        <hr />
+                        
+                        <button class="btn btn-outline-primary btn-sm w-100" @onclick="ExportToPdf">
+                            <i class="fas fa-file-pdf"></i> Export to PDF
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h6>Expense Summary</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row text-center">
+                            <div class="col-6">
+                                <h6 class="text-muted">Days</h6>
+                                <h4 class="text-primary">@GetTotalDays()</h4>
+                            </div>
+                            <div class="col-6">
+                                <h6 class="text-muted">Avg/Day</h6>
+                                <h4 class="text-info">$@GetAveragePerDay().ToString("F2")</h4>
+                            </div>
+                        </div>
+                        
+                        <hr />
+                        
+                        <h6>Category Distribution</h6>
+                        @if (expense.HotelBills > 0)
+                        {
+                            <div class="d-flex justify-content-between mb-1">
+                                <small>Hotel</small>
+                                <small>@GetCategoryPercentage(expense.HotelBills)%</small>
+                            </div>
+                            <div class="progress mb-2" style="height: 6px;">
+                                <div class="progress-bar bg-primary" style="width: @GetCategoryPercentage(expense.HotelBills)%"></div>
+                            </div>
+                        }
+                        
+                        @if (expense.TravelBills > 0)
+                        {
+                            <div class="d-flex justify-content-between mb-1">
+                                <small>Travel</small>
+                                <small>@GetCategoryPercentage(expense.TravelBills)%</small>
+                            </div>
+                            <div class="progress mb-2" style="height: 6px;">
+                                <div class="progress-bar bg-info" style="width: @GetCategoryPercentage(expense.TravelBills)%"></div>
+                            </div>
+                        }
+                        
+                        @if (expense.MealsBills > 0)
+                        {
+                            <div class="d-flex justify-content-between mb-1">
+                                <small>Meals</small>
+                                <small>@GetCategoryPercentage(expense.MealsBills)%</small>
+                            </div>
+                            <div class="progress mb-2" style="height: 6px;">
+                                <div class="progress-bar bg-warning" style="width: @GetCategoryPercentage(expense.MealsBills)%"></div>
+                            </div>
+                        }
+                        
+                        @if (expense.OtherBills > 0)
+                        {
+                            <div class="d-flex justify-content-between mb-1">
+                                <small>Other</small>
+                                <small>@GetCategoryPercentage(expense.OtherBills)%</small>
+                            </div>
+                            <div class="progress mb-2" style="height: 6px;">
+                                <div class="progress-bar bg-secondary" style="width: @GetCategoryPercentage(expense.OtherBills)%"></div>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                @if (expense.TotalAmount > 1000)
+                {
+                    <div class="card mt-3 border-warning">
+                        <div class="card-header bg-warning text-dark">
+                            <h6 class="mb-0">💰 High Value Alert</h6>
+                        </div>
+                        <div class="card-body">
+                            <p class="mb-0">
+                                This is a high-value expense report.<br />
+                                <strong>Amount: $@expense.TotalAmount.ToString("F2")</strong><br />
+                                <small class="text-muted">May require additional approval.</small>
+                            </p>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public int Id { get; set; }
+    
+    private Expense? expense;
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadExpense();
+    }
+
+    private async Task LoadExpense()
+    {
+        try
+        {
+            expense = await ExpenseService.GetExpenseByIdAsync(Id);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading expense: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo("/expenses");
+    }
+
+    private void EditExpense()
+    {
+        Navigation.NavigateTo($"/expenses/edit/{Id}");
+    }
+
+    private async Task SubmitForApproval()
+    {
+        if (expense == null) return;
+        
+        try
+        {
+            await ExpenseService.SubmitExpenseAsync(expense.ExpenseId, expense.UserId);
+            await LoadExpense(); // Refresh data
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error submitting expense: {ex.Message}");
+        }
+    }
+
+    private async Task ApproveExpense()
+    {
+        if (expense == null) return;
+        
+        try
+        {
+            // TODO: Get current user ID from authentication context
+            await ExpenseService.ApproveExpenseAsync(expense.ExpenseId, 1, "Approved via web interface");
+            await LoadExpense(); // Refresh data
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error approving expense: {ex.Message}");
+        }
+    }
+
+    private async Task RejectExpense()
+    {
+        if (expense == null) return;
+        
+        try
+        {
+            // TODO: Add modal for rejection reason
+            await ExpenseService.RejectExpenseAsync(expense.ExpenseId, 1, "Rejected via web interface");
+            await LoadExpense(); // Refresh data
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error rejecting expense: {ex.Message}");
+        }
+    }
+
+    private void ViewAuditHistory()
+    {
+        Navigation.NavigateTo($"/expenses/{Id}/audit");
+    }
+
+    private void ExportToPdf()
+    {
+        // TODO: Implement PDF export
+        Console.WriteLine("Export to PDF functionality - to be implemented");
+    }
+
+    private bool CanEdit()
+    {
+        return expense != null && 
+               (expense.Status == ExpenseStatus.Draft || expense.Status == ExpenseStatus.Rejected);
+    }
+
+    private bool CanSubmit()
+    {
+        return expense != null && expense.Status == ExpenseStatus.Draft;
+    }
+
+    private bool CanApprove()
+    {
+        // TODO: Add proper user authorization logic - only managers/admins
+        return expense != null && expense.Status == ExpenseStatus.Submitted;
+    }
+
+    private string GetStatusBadgeClass()
+    {
+        if (expense == null) return "bg-secondary";
+        
+        return expense.Status.ToString().ToLower() switch
+        {
+            "draft" => "bg-secondary",
+            "submitted" => "bg-warning text-dark",
+            "approved" => "bg-success",
+            "rejected" => "bg-danger",
+            _ => "bg-secondary"
+        };
+    }
+
+    private string GetApprovalCardBorderClass()
+    {
+        if (expense == null) return "secondary";
+        
+        return expense.Status.ToString().ToLower() switch
+        {
+            "approved" => "success",
+            "rejected" => "danger",
+            _ => "secondary"
+        };
+    }
+
+    private string GetCategoryPercentage(decimal amount)
+    {
+        if (expense?.TotalAmount == 0) return "0";
+        return Math.Round((double)(amount / expense.TotalAmount * 100), 1).ToString("F1");
+    }
+
+    private int GetTotalDays()
+    {
+        if (expense == null) return 0;
+        return (expense.ToDate - expense.FromDate).Days + 1;
+    }
+
+    private decimal GetAveragePerDay()
+    {
+        var totalDays = GetTotalDays();
+        if (totalDays == 0 || expense == null) return 0;
+        return expense.TotalAmount / totalDays;
+    }
+}

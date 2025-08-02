@@ -1,0 +1,712 @@
+@page "/admin/expenses"
+@using WebTimeSheetManagement.Services.Interfaces
+@using WebTimeSheetManagement.Models
+@inject IExpenseService ExpenseService
+@inject IUserService UserService
+@inject IProjectService ProjectService
+@inject NavigationManager Navigation
+
+<PageTitle>All Expenses - Admin Panel</PageTitle>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1>
+                        <i class="fas fa-receipt me-2"></i>
+                        All Expenses
+                    </h1>
+                    <p class="text-muted">Manage and approve all employee expense reports</p>
+                </div>
+                <div>
+                    <button class="btn btn-outline-secondary me-2" @onclick="ExportExpenses">
+                        <i class="fas fa-download"></i> Export
+                    </button>
+                    <button class="btn btn-secondary" @onclick="GoToAdminDashboard">
+                        <i class="fas fa-arrow-left"></i> Back to Admin
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4>@totalExpenses</h4>
+                            <p class="mb-0">Total Expenses</p>
+                        </div>
+                        <i class="fas fa-receipt fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4>$@totalAmount.ToString("F2")</h4>
+                            <p class="mb-0">Total Amount</p>
+                        </div>
+                        <i class="fas fa-dollar-sign fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="card bg-warning text-dark">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4>@pendingExpenses</h4>
+                            <p class="mb-0">Pending Approval</p>
+                        </div>
+                        <i class="fas fa-clock fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4>$@averageExpense.ToString("F2")</h4>
+                            <p class="mb-0">Average Expense</p>
+                        </div>
+                        <i class="fas fa-chart-line fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters and Search -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-filter me-2"></i>Filters & Search</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <label for="statusFilter" class="form-label">Status</label>
+                            <select @bind="selectedStatus" @bind:after="FilterExpenses" class="form-select" id="statusFilter">
+                                <option value="">All Statuses</option>
+                                <option value="Draft">Draft</option>
+                                <option value="Submitted">Submitted</option>
+                                <option value="Approved">Approved</option>
+                                <option value="Rejected">Rejected</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="userFilter" class="form-label">Employee</label>
+                            <select @bind="selectedUserId" @bind:after="FilterExpenses" class="form-select" id="userFilter">
+                                <option value="0">All Employees</option>
+                                @if (users != null)
+                                {
+                                    @foreach (var user in users)
+                                    {
+                                        <option value="@user.UserId">@user.Name</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="projectFilter" class="form-label">Project</label>
+                            <select @bind="selectedProjectId" @bind:after="FilterExpenses" class="form-select" id="projectFilter">
+                                <option value="0">All Projects</option>
+                                @if (projects != null)
+                                {
+                                    @foreach (var project in projects)
+                                    {
+                                        <option value="@project.ProjectId">@project.ProjectName</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="amountFilter" class="form-label">Amount Range</label>
+                            <select @bind="selectedAmountRange" @bind:after="FilterExpenses" class="form-select" id="amountFilter">
+                                <option value="">All Amounts</option>
+                                <option value="0-100">$0 - $100</option>
+                                <option value="100-500">$100 - $500</option>
+                                <option value="500-1000">$500 - $1,000</option>
+                                <option value="1000+">$1,000+</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <label for="searchText" class="form-label">Search</label>
+                            <input @bind="searchText" @bind:after="FilterExpenses" type="text" class="form-control" id="searchText" 
+                                   placeholder="Search by employee name, project, purpose, or voucher ID..." />
+                        </div>
+                        <div class="col-md-6 d-flex align-items-end">
+                            <button class="btn btn-outline-secondary me-2" @onclick="ClearFilters">
+                                <i class="fas fa-times"></i> Clear Filters
+                            </button>
+                            <div class="ms-auto">
+                                <span class="text-muted">Showing @filteredExpenses.Count() of @totalExpenses expenses</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bulk Actions -->
+    <div class="row mb-3">
+        <div class="col-md-12">
+            @if (selectedExpenseIds.Any())
+            {
+                <div class="card border-primary">
+                    <div class="card-body py-2">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span><strong>@selectedExpenseIds.Count</strong> expenses selected (Total: $@GetSelectedTotal().ToString("F2"))</span>
+                            <div>
+                                <button class="btn btn-success btn-sm me-2" @onclick="ApproveSelected">
+                                    <i class="fas fa-check"></i> Approve Selected
+                                </button>
+                                <button class="btn btn-danger btn-sm me-2" @onclick="RejectSelected">
+                                    <i class="fas fa-times"></i> Reject Selected
+                                </button>
+                                <button class="btn btn-outline-info btn-sm me-2" @onclick="ExportSelected">
+                                    <i class="fas fa-download"></i> Export Selected
+                                </button>
+                                <button class="btn btn-outline-secondary btn-sm" @onclick="ClearSelection">
+                                    <i class="fas fa-times"></i> Clear Selection
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="text-center">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p>Loading expenses...</p>
+        </div>
+    }
+    else
+    {
+        <!-- Expenses Table -->
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Expense Reports (@filteredExpenses.Count())</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        @if (filteredExpenses.Any())
+                        {
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>
+                                                <input type="checkbox" @onchange="ToggleSelectAll" 
+                                                       checked="@(selectedExpenseIds.Count == filteredExpenses.Count())" />
+                                            </th>
+                                            <th>Employee</th>
+                                            <th>Project</th>
+                                            <th>Period</th>
+                                            <th>Categories</th>
+                                            <th>Total Amount</th>
+                                            <th>Status</th>
+                                            <th>Submitted</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var expense in filteredExpenses.Skip(currentPage * pageSize).Take(pageSize))
+                                        {
+                                            <tr class="@(selectedExpenseIds.Contains(expense.ExpenseId) ? "table-active" : "")">
+                                                <td>
+                                                    <input type="checkbox" 
+                                                           checked="@selectedExpenseIds.Contains(expense.ExpenseId)"
+                                                           @onchange="@((e) => ToggleExpenseSelection(expense.ExpenseId, e))" />
+                                                </td>
+                                                <td>
+                                                    <div class="d-flex align-items-center">
+                                                        <i class="fas fa-user-circle fa-lg text-muted me-2"></i>
+                                                        <div>
+                                                            <strong>@expense.User.Name</strong><br />
+                                                            <small class="text-muted">@expense.User.Username</small>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <div>
+                                                        <strong>@expense.Project.ProjectName</strong><br />
+                                                        <small class="text-muted">@expense.Project.ProjectCode</small>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <div>
+                                                        <strong>@expense.FromDate.ToString("MM/dd")</strong> - 
+                                                        <strong>@expense.ToDate.ToString("MM/dd/yyyy")</strong><br />
+                                                        <small class="text-muted">@GetExpenseDays(expense) days</small>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <div class="expense-breakdown">
+                                                        @if (expense.HotelBills > 0)
+                                                        {
+                                                            <small><i class="fas fa-bed text-primary me-1"></i>$@expense.HotelBills.ToString("F0")</small><br />
+                                                        }
+                                                        @if (expense.TravelBills > 0)
+                                                        {
+                                                            <small><i class="fas fa-plane text-info me-1"></i>$@expense.TravelBills.ToString("F0")</small><br />
+                                                        }
+                                                        @if (expense.MealsBills > 0)
+                                                        {
+                                                            <small><i class="fas fa-utensils text-warning me-1"></i>$@expense.MealsBills.ToString("F0")</small><br />
+                                                        }
+                                                        @if (expense.OtherBills > 0)
+                                                        {
+                                                            <small><i class="fas fa-receipt text-secondary me-1"></i>$@expense.OtherBills.ToString("F0")</small>
+                                                        }
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <h5 class="mb-0 text-success">$@expense.TotalAmount.ToString("F2")</h5>
+                                                    <small class="text-muted">$@GetAveragePerDay(expense).ToString("F2")/day avg</small>
+                                                </td>
+                                                <td>
+                                                    <span class="badge @GetStatusBadgeClass(expense.Status) fs-6">
+                                                        @expense.Status
+                                                    </span>
+                                                    @if (!string.IsNullOrEmpty(expense.VoucherId))
+                                                    {
+                                                        <br /><small class="text-muted">@expense.VoucherId</small>
+                                                    }
+                                                </td>
+                                                <td>
+                                                    @expense.CreatedOn.ToString("MM/dd/yyyy")<br />
+                                                    <small class="text-muted">@expense.CreatedOn.ToString("HH:mm")</small>
+                                                </td>
+                                                <td>
+                                                    <div class="btn-group" role="group">
+                                                        <button class="btn btn-outline-primary btn-sm" @onclick="() => ViewExpense(expense.ExpenseId)">
+                                                            <i class="fas fa-eye"></i>
+                                                        </button>
+                                                        @if (expense.Status == ExpenseStatus.Submitted)
+                                                        {
+                                                            <button class="btn btn-outline-success btn-sm" @onclick="() => ApproveExpense(expense.ExpenseId)">
+                                                                <i class="fas fa-check"></i>
+                                                            </button>
+                                                            <button class="btn btn-outline-danger btn-sm" @onclick="() => RejectExpense(expense.ExpenseId)">
+                                                                <i class="fas fa-times"></i>
+                                                            </button>
+                                                        }
+                                                        else if (expense.Status == ExpenseStatus.Draft)
+                                                        {
+                                                            <button class="btn btn-outline-warning btn-sm" @onclick="() => EditExpense(expense.ExpenseId)">
+                                                                <i class="fas fa-edit"></i>
+                                                            </button>
+                                                        }
+                                                        <button class="btn btn-outline-info btn-sm" @onclick="() => DownloadReceipts(expense.ExpenseId)">
+                                                            <i class="fas fa-download"></i>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- Pagination -->
+                            @if (totalPages > 1)
+                            {
+                                <div class="card-footer">
+                                    <nav>
+                                        <ul class="pagination justify-content-center mb-0">
+                                            <li class="page-item @(currentPage == 0 ? "disabled" : "")">
+                                                <button class="page-link" @onclick="() => GoToPage(currentPage - 1)">Previous</button>
+                                            </li>
+                                            @for (int i = 0; i < totalPages; i++)
+                                            {
+                                                var pageIndex = i;
+                                                <li class="page-item @(currentPage == i ? "active" : "")">
+                                                    <button class="page-link" @onclick="() => GoToPage(pageIndex)">@(i + 1)</button>
+                                                </li>
+                                            }
+                                            <li class="page-item @(currentPage == totalPages - 1 ? "disabled" : "")">
+                                                <button class="page-link" @onclick="() => GoToPage(currentPage + 1)">Next</button>
+                                            </li>
+                                        </ul>
+                                    </nav>
+                                    <div class="text-center mt-2">
+                                        <small class="text-muted">
+                                            Showing @(currentPage * pageSize + 1) to @Math.Min((currentPage + 1) * pageSize, filteredExpenses.Count()) 
+                                            of @filteredExpenses.Count() expenses (Total: $@filteredExpenses.Sum(e => e.TotalAmount).ToString("F2"))
+                                        </small>
+                                    </div>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <div class="text-center py-5">
+                                <i class="fas fa-receipt fa-3x text-muted mb-3"></i>
+                                <h5>No Expense Reports Found</h5>
+                                <p class="text-muted">No expense reports match your current filter criteria.</p>
+                                <button class="btn btn-outline-primary" @onclick="ClearFilters">
+                                    <i class="fas fa-times"></i> Clear Filters
+                                </button>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    @if (errorMessage != null)
+    {
+        <div class="alert alert-danger mt-3">
+            @errorMessage
+        </div>
+    }
+
+    @if (successMessage != null)
+    {
+        <div class="alert alert-success mt-3">
+            @successMessage
+        </div>
+    }
+</div>
+
+@code {
+    private IEnumerable<Expense> allExpenses = new List<Expense>();
+    private IEnumerable<Expense> filteredExpenses = new List<Expense>();
+    private IEnumerable<User>? users;
+    private IEnumerable<Project>? projects;
+    private HashSet<int> selectedExpenseIds = new();
+    
+    private bool isLoading = true;
+    private string? errorMessage;
+    private string? successMessage;
+    
+    // Summary statistics
+    private int totalExpenses = 0;
+    private decimal totalAmount = 0;
+    private int pendingExpenses = 0;
+    private decimal averageExpense = 0;
+    
+    // Filters
+    private string selectedStatus = "";
+    private int selectedUserId = 0;
+    private int selectedProjectId = 0;
+    private string selectedAmountRange = "";
+    private string searchText = "";
+    
+    // Pagination
+    private int currentPage = 0;
+    private int pageSize = 10;
+    private int totalPages = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        try
+        {
+            var loadTasks = new[]
+            {
+                LoadExpenses(),
+                LoadUsers(),
+                LoadProjects()
+            };
+            
+            await Task.WhenAll(loadTasks);
+            CalculateStatistics();
+            await FilterExpenses();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error loading data: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task LoadExpenses()
+    {
+        allExpenses = await ExpenseService.GetAllExpensesAsync();
+    }
+
+    private async Task LoadUsers()
+    {
+        users = await UserService.GetAllUsersAsync();
+    }
+
+    private async Task LoadProjects()
+    {
+        projects = await ProjectService.GetAllProjectsAsync();
+    }
+
+    private void CalculateStatistics()
+    {
+        totalExpenses = allExpenses.Count();
+        totalAmount = allExpenses.Sum(e => e.TotalAmount);
+        pendingExpenses = allExpenses.Count(e => e.Status == ExpenseStatus.Submitted);
+        averageExpense = totalExpenses > 0 ? totalAmount / totalExpenses : 0;
+    }
+
+    private async Task FilterExpenses()
+    {
+        var filtered = allExpenses.AsEnumerable();
+
+        // Status filter
+        if (!string.IsNullOrEmpty(selectedStatus))
+        {
+            if (Enum.TryParse<ExpenseStatus>(selectedStatus, out var status))
+            {
+                filtered = filtered.Where(e => e.Status == status);
+            }
+        }
+
+        // User filter
+        if (selectedUserId > 0)
+        {
+            filtered = filtered.Where(e => e.User.UserId == selectedUserId);
+        }
+
+        // Project filter
+        if (selectedProjectId > 0)
+        {
+            filtered = filtered.Where(e => e.Project.ProjectId == selectedProjectId);
+        }
+
+        // Amount range filter
+        if (!string.IsNullOrEmpty(selectedAmountRange))
+        {
+            filtered = selectedAmountRange switch
+            {
+                "0-100" => filtered.Where(e => e.TotalAmount >= 0 && e.TotalAmount <= 100),
+                "100-500" => filtered.Where(e => e.TotalAmount > 100 && e.TotalAmount <= 500),
+                "500-1000" => filtered.Where(e => e.TotalAmount > 500 && e.TotalAmount <= 1000),
+                "1000+" => filtered.Where(e => e.TotalAmount > 1000),
+                _ => filtered
+            };
+        }
+
+        // Search filter
+        if (!string.IsNullOrEmpty(searchText))
+        {
+            var search = searchText.ToLower();
+            filtered = filtered.Where(e => 
+                e.User.Name.ToLower().Contains(search) ||
+                e.Project.ProjectName.ToLower().Contains(search) ||
+                e.Project.ProjectCode.ToLower().Contains(search) ||
+                (e.PurposeOrReason?.ToLower().Contains(search) == true) ||
+                (e.VoucherId?.ToLower().Contains(search) == true));
+        }
+
+        filteredExpenses = filtered.OrderByDescending(e => e.CreatedOn);
+        
+        // Update pagination
+        totalPages = (int)Math.Ceiling((double)filteredExpenses.Count() / pageSize);
+        currentPage = Math.Min(currentPage, Math.Max(0, totalPages - 1));
+        
+        StateHasChanged();
+    }
+
+    private async Task ClearFilters()
+    {
+        selectedStatus = "";
+        selectedUserId = 0;
+        selectedProjectId = 0;
+        selectedAmountRange = "";
+        searchText = "";
+        currentPage = 0;
+        await FilterExpenses();
+    }
+
+    // Navigation methods
+    private void GoToAdminDashboard() => Navigation.NavigateTo("/admin");
+    private void ViewExpense(int id) => Navigation.NavigateTo($"/expenses/{id}");
+    private void EditExpense(int id) => Navigation.NavigateTo($"/expenses/edit/{id}");
+
+    // Pagination
+    private async Task GoToPage(int page)
+    {
+        if (page >= 0 && page < totalPages)
+        {
+            currentPage = page;
+            StateHasChanged();
+        }
+    }
+
+    // Selection methods
+    private void ToggleSelectAll(ChangeEventArgs e)
+    {
+        if ((bool)e.Value!)
+        {
+            selectedExpenseIds = filteredExpenses.Select(ex => ex.ExpenseId).ToHashSet();
+        }
+        else
+        {
+            selectedExpenseIds.Clear();
+        }
+    }
+
+    private void ToggleExpenseSelection(int expenseId, ChangeEventArgs e)
+    {
+        if ((bool)e.Value!)
+        {
+            selectedExpenseIds.Add(expenseId);
+        }
+        else
+        {
+            selectedExpenseIds.Remove(expenseId);
+        }
+    }
+
+    private void ClearSelection()
+    {
+        selectedExpenseIds.Clear();
+    }
+
+    private decimal GetSelectedTotal()
+    {
+        return filteredExpenses.Where(e => selectedExpenseIds.Contains(e.ExpenseId)).Sum(e => e.TotalAmount);
+    }
+
+    // Approval methods
+    private async Task ApproveExpense(int expenseId)
+    {
+        try
+        {
+            // TODO: Implement approval logic
+            successMessage = "Expense approved successfully!";
+            await LoadExpenses();
+            CalculateStatistics();
+            await FilterExpenses();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error approving expense: {ex.Message}";
+        }
+    }
+
+    private async Task RejectExpense(int expenseId)
+    {
+        try
+        {
+            // TODO: Implement rejection logic
+            successMessage = "Expense rejected!";
+            await LoadExpenses();
+            CalculateStatistics();
+            await FilterExpenses();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error rejecting expense: {ex.Message}";
+        }
+    }
+
+    private async Task ApproveSelected()
+    {
+        try
+        {
+            foreach (var id in selectedExpenseIds)
+            {
+                // TODO: Implement bulk approval
+            }
+            successMessage = $"{selectedExpenseIds.Count} expenses approved!";
+            selectedExpenseIds.Clear();
+            await LoadExpenses();
+            CalculateStatistics();
+            await FilterExpenses();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error approving expenses: {ex.Message}";
+        }
+    }
+
+    private async Task RejectSelected()
+    {
+        try
+        {
+            foreach (var id in selectedExpenseIds)
+            {
+                // TODO: Implement bulk rejection
+            }
+            successMessage = $"{selectedExpenseIds.Count} expenses rejected!";
+            selectedExpenseIds.Clear();
+            await LoadExpenses();
+            CalculateStatistics();
+            await FilterExpenses();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error rejecting expenses: {ex.Message}";
+        }
+    }
+
+    private async Task ExportExpenses()
+    {
+        // TODO: Implement export functionality
+        successMessage = "Export feature coming soon!";
+    }
+
+    private async Task ExportSelected()
+    {
+        // TODO: Implement selected export functionality
+        successMessage = $"Exporting {selectedExpenseIds.Count} selected expenses...";
+    }
+
+    private async Task DownloadReceipts(int expenseId)
+    {
+        // TODO: Implement receipt download
+        successMessage = "Receipt download feature coming soon!";
+    }
+
+    // Helper methods
+    private string GetStatusBadgeClass(ExpenseStatus status)
+    {
+        return status.ToString().ToLower() switch
+        {
+            "draft" => "bg-secondary",
+            "submitted" => "bg-warning text-dark",
+            "approved" => "bg-success",
+            "rejected" => "bg-danger",
+            _ => "bg-secondary"
+        };
+    }
+
+    private int GetExpenseDays(Expense expense)
+    {
+        return (expense.ToDate - expense.FromDate).Days + 1;
+    }
+
+    private decimal GetAveragePerDay(Expense expense)
+    {
+        var days = GetExpenseDays(expense);
+        return days > 0 ? expense.TotalAmount / days : 0;
+    }
+}

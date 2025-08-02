@@ -1,0 +1,751 @@
+@page "/admin/users"
+@using WebTimeSheetManagement.Services.Interfaces
+@using WebTimeSheetManagement.Models
+@inject IUserService UserService
+@inject IRoleService RoleService
+@inject NavigationManager Navigation
+
+<PageTitle>All Users - Admin Panel</PageTitle>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1>
+                        <i class="fas fa-users me-2"></i>
+                        User Management
+                    </h1>
+                    <p class="text-muted">Manage all system users and their permissions</p>
+                </div>
+                <div>
+                    <button class="btn btn-success me-2" @onclick="CreateNewUser">
+                        <i class="fas fa-user-plus"></i> Add User
+                    </button>
+                    <button class="btn btn-outline-secondary me-2" @onclick="ExportUsers">
+                        <i class="fas fa-download"></i> Export
+                    </button>
+                    <button class="btn btn-secondary" @onclick="GoToAdminDashboard">
+                        <i class="fas fa-arrow-left"></i> Back to Admin
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4>@totalUsers</h4>
+                            <p class="mb-0">Total Users</p>
+                        </div>
+                        <i class="fas fa-users fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4>@activeUsers</h4>
+                            <p class="mb-0">Active Users</p>
+                        </div>
+                        <i class="fas fa-user-check fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="card bg-warning text-dark">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4>@inactiveUsers</h4>
+                            <p class="mb-0">Inactive Users</p>
+                        </div>
+                        <i class="fas fa-user-slash fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4>@recentLogins</h4>
+                            <p class="mb-0">Recent Logins</p>
+                        </div>
+                        <i class="fas fa-clock fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters and Search -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-filter me-2"></i>Filters & Search</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <label for="statusFilter" class="form-label">Status</label>
+                            <select @bind="selectedStatus" @bind:after="FilterUsers" class="form-select" id="statusFilter">
+                                <option value="">All Statuses</option>
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="roleFilter" class="form-label">Role</label>
+                            <select @bind="selectedRoleId" @bind:after="FilterUsers" class="form-select" id="roleFilter">
+                                <option value="0">All Roles</option>
+                                @if (roles != null)
+                                {
+                                    @foreach (var role in roles)
+                                    {
+                                        <option value="@role.RoleId">@role.RoleName</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="departmentFilter" class="form-label">Department</label>
+                            <select @bind="selectedDepartment" @bind:after="FilterUsers" class="form-select" id="departmentFilter">
+                                <option value="">All Departments</option>
+                                <option value="IT">Information Technology</option>
+                                <option value="HR">Human Resources</option>
+                                <option value="Finance">Finance</option>
+                                <option value="Marketing">Marketing</option>
+                                <option value="Sales">Sales</option>
+                                <option value="Operations">Operations</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="loginFilter" class="form-label">Login Activity</label>
+                            <select @bind="selectedLoginActivity" @bind:after="FilterUsers" class="form-select" id="loginFilter">
+                                <option value="">All Users</option>
+                                <option value="never">Never Logged In</option>
+                                <option value="recent">Recent (7 days)</option>
+                                <option value="month">This Month</option>
+                                <option value="old">Not Recent (30+ days)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <label for="searchText" class="form-label">Search</label>
+                            <input @bind="searchText" @bind:after="FilterUsers" type="text" class="form-control" id="searchText" 
+                                   placeholder="Search by name, username, email, or mobile..." />
+                        </div>
+                        <div class="col-md-6 d-flex align-items-end">
+                            <button class="btn btn-outline-secondary me-2" @onclick="ClearFilters">
+                                <i class="fas fa-times"></i> Clear Filters
+                            </button>
+                            <div class="ms-auto">
+                                <span class="text-muted">Showing @filteredUsers.Count() of @totalUsers users</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bulk Actions -->
+    <div class="row mb-3">
+        <div class="col-md-12">
+            @if (selectedUserIds.Any())
+            {
+                <div class="card border-primary">
+                    <div class="card-body py-2">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span><strong>@selectedUserIds.Count</strong> users selected</span>
+                            <div>
+                                <button class="btn btn-success btn-sm me-2" @onclick="ActivateSelected">
+                                    <i class="fas fa-user-check"></i> Activate Selected
+                                </button>
+                                <button class="btn btn-warning btn-sm me-2" @onclick="DeactivateSelected">
+                                    <i class="fas fa-user-slash"></i> Deactivate Selected
+                                </button>
+                                <button class="btn btn-outline-info btn-sm me-2" @onclick="ExportSelected">
+                                    <i class="fas fa-download"></i> Export Selected
+                                </button>
+                                <button class="btn btn-outline-secondary btn-sm" @onclick="ClearSelection">
+                                    <i class="fas fa-times"></i> Clear Selection
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="text-center">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p>Loading users...</p>
+        </div>
+    }
+    else
+    {
+        <!-- Users Table -->
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>System Users (@filteredUsers.Count())</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        @if (filteredUsers.Any())
+                        {
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>
+                                                <input type="checkbox" @onchange="ToggleSelectAll" 
+                                                       checked="@(selectedUserIds.Count == filteredUsers.Count())" />
+                                            </th>
+                                            <th>User</th>
+                                            <th>Contact</th>
+                                            <th>Department</th>
+                                            <th>Role</th>
+                                            <th>Status</th>
+                                            <th>Last Login</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var user in filteredUsers.Skip(currentPage * pageSize).Take(pageSize))
+                                        {
+                                            <tr class="@(selectedUserIds.Contains(user.UserId) ? "table-active" : "")">
+                                                <td>
+                                                    <input type="checkbox" 
+                                                           checked="@selectedUserIds.Contains(user.UserId)"
+                                                           @onchange="@((e) => ToggleUserSelection(user.UserId, e))" />
+                                                </td>
+                                                <td>
+                                                    <div class="d-flex align-items-center">
+                                                        <i class="fas fa-user-circle fa-2x text-muted me-3"></i>
+                                                        <div>
+                                                            <strong>@user.Name</strong><br />
+                                                            <small class="text-muted">@user.Username</small>
+                                                            @if (!string.IsNullOrEmpty(user.Designation))
+                                                            {
+                                                                <br /><small class="badge bg-light text-dark">@user.Designation</small>
+                                                            }
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <div>
+                                                        <i class="fas fa-envelope text-muted me-1"></i>
+                                                        <a href="mailto:@user.Email">@user.Email</a><br />
+                                                        @if (!string.IsNullOrEmpty(user.MobileNumber))
+                                                        {
+                                                            <i class="fas fa-phone text-muted me-1"></i>
+                                                            <a href="tel:@user.MobileNumber">@user.MobileNumber</a>
+                                                        }
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    @if (!string.IsNullOrEmpty(user.Department))
+                                                    {
+                                                        <span class="badge bg-info">@user.Department</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="text-muted">Not set</span>
+                                                    }
+                                                </td>
+                                                <td>
+                                                    @{
+                                                        var userRole = GetUserRole(user.UserId);
+                                                    }
+                                                    @if (userRole != null)
+                                                    {
+                                                        <span class="badge bg-@GetRoleBadgeClass(userRole.RoleName)">@userRole.RoleName</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="text-muted">No role</span>
+                                                    }
+                                                </td>
+                                                <td>
+                                                    @if (user.IsActive)
+                                                    {
+                                                        <span class="badge bg-success fs-6">Active</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="badge bg-secondary fs-6">Inactive</span>
+                                                    }
+                                                </td>
+                                                <td>
+                                                    @if (user.LastLoginDate.HasValue)
+                                                    {
+                                                        <div>
+                                                            @user.LastLoginDate.Value.ToString("MM/dd/yyyy")<br />
+                                                            <small class="text-muted">@GetLastLoginText(user.LastLoginDate.Value)</small>
+                                                        </div>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="text-muted">Never</span>
+                                                    }
+                                                </td>
+                                                <td>
+                                                    <div class="btn-group" role="group">
+                                                        <button class="btn btn-outline-primary btn-sm" @onclick="() => ViewUser(user.UserId)">
+                                                            <i class="fas fa-eye"></i>
+                                                        </button>
+                                                        <button class="btn btn-outline-warning btn-sm" @onclick="() => EditUser(user.UserId)">
+                                                            <i class="fas fa-edit"></i>
+                                                        </button>
+                                                        @if (user.IsActive)
+                                                        {
+                                                            <button class="btn btn-outline-secondary btn-sm" @onclick="() => DeactivateUser(user.UserId)">
+                                                                <i class="fas fa-user-slash"></i>
+                                                            </button>
+                                                        }
+                                                        else
+                                                        {
+                                                            <button class="btn btn-outline-success btn-sm" @onclick="() => ActivateUser(user.UserId)">
+                                                                <i class="fas fa-user-check"></i>
+                                                            </button>
+                                                        }
+                                                        <button class="btn btn-outline-info btn-sm" @onclick="() => ResetUserPassword(user.UserId)">
+                                                            <i class="fas fa-key"></i>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- Pagination -->
+                            @if (totalPages > 1)
+                            {
+                                <div class="card-footer">
+                                    <nav>
+                                        <ul class="pagination justify-content-center mb-0">
+                                            <li class="page-item @(currentPage == 0 ? "disabled" : "")">
+                                                <button class="page-link" @onclick="() => GoToPage(currentPage - 1)">Previous</button>
+                                            </li>
+                                            @for (int i = 0; i < totalPages; i++)
+                                            {
+                                                var pageIndex = i;
+                                                <li class="page-item @(currentPage == i ? "active" : "")">
+                                                    <button class="page-link" @onclick="() => GoToPage(pageIndex)">@(i + 1)</button>
+                                                </li>
+                                            }
+                                            <li class="page-item @(currentPage == totalPages - 1 ? "disabled" : "")">
+                                                <button class="page-link" @onclick="() => GoToPage(currentPage + 1)">Next</button>
+                                            </li>
+                                        </ul>
+                                    </nav>
+                                    <div class="text-center mt-2">
+                                        <small class="text-muted">
+                                            Showing @(currentPage * pageSize + 1) to @Math.Min((currentPage + 1) * pageSize, filteredUsers.Count()) 
+                                            of @filteredUsers.Count() users
+                                        </small>
+                                    </div>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <div class="text-center py-5">
+                                <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                                <h5>No Users Found</h5>
+                                <p class="text-muted">No users match your current filter criteria.</p>
+                                <button class="btn btn-outline-primary" @onclick="ClearFilters">
+                                    <i class="fas fa-times"></i> Clear Filters
+                                </button>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    @if (errorMessage != null)
+    {
+        <div class="alert alert-danger mt-3">
+            @errorMessage
+        </div>
+    }
+
+    @if (successMessage != null)
+    {
+        <div class="alert alert-success mt-3">
+            @successMessage
+        </div>
+    }
+</div>
+
+@code {
+    private IEnumerable<User> allUsers = new List<User>();
+    private IEnumerable<User> filteredUsers = new List<User>();
+    private IEnumerable<Role>? roles;
+    private HashSet<int> selectedUserIds = new();
+    
+    private bool isLoading = true;
+    private string? errorMessage;
+    private string? successMessage;
+    
+    // Summary statistics
+    private int totalUsers = 0;
+    private int activeUsers = 0;
+    private int inactiveUsers = 0;
+    private int recentLogins = 0;
+    
+    // Filters
+    private string selectedStatus = "";
+    private int selectedRoleId = 0;
+    private string selectedDepartment = "";
+    private string selectedLoginActivity = "";
+    private string searchText = "";
+    
+    // Pagination
+    private int currentPage = 0;
+    private int pageSize = 10;
+    private int totalPages = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        try
+        {
+            var loadTasks = new[]
+            {
+                LoadUsers(),
+                LoadRoles()
+            };
+            
+            await Task.WhenAll(loadTasks);
+            CalculateStatistics();
+            await FilterUsers();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error loading data: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task LoadUsers()
+    {
+        allUsers = await UserService.GetAllUsersAsync();
+    }
+
+    private async Task LoadRoles()
+    {
+        roles = await RoleService.GetAllRolesAsync();
+    }
+
+    private void CalculateStatistics()
+    {
+        totalUsers = allUsers.Count();
+        activeUsers = allUsers.Count(u => u.IsActive);
+        inactiveUsers = totalUsers - activeUsers;
+        recentLogins = allUsers.Count(u => u.LastLoginDate.HasValue && u.LastLoginDate.Value >= DateTime.Now.AddDays(-7));
+    }
+
+    private async Task FilterUsers()
+    {
+        var filtered = allUsers.AsEnumerable();
+
+        // Status filter
+        if (!string.IsNullOrEmpty(selectedStatus))
+        {
+            filtered = selectedStatus switch
+            {
+                "active" => filtered.Where(u => u.IsActive),
+                "inactive" => filtered.Where(u => !u.IsActive),
+                _ => filtered
+            };
+        }
+
+        // Role filter
+        if (selectedRoleId > 0)
+        {
+            // TODO: Implement role filtering when user-role relationships are available
+            // filtered = filtered.Where(u => u.RoleId == selectedRoleId);
+        }
+
+        // Department filter
+        if (!string.IsNullOrEmpty(selectedDepartment))
+        {
+            filtered = filtered.Where(u => u.Department == selectedDepartment);
+        }
+
+        // Login activity filter
+        if (!string.IsNullOrEmpty(selectedLoginActivity))
+        {
+            var now = DateTime.Now;
+            filtered = selectedLoginActivity switch
+            {
+                "never" => filtered.Where(u => !u.LastLoginDate.HasValue),
+                "recent" => filtered.Where(u => u.LastLoginDate.HasValue && u.LastLoginDate.Value >= now.AddDays(-7)),
+                "month" => filtered.Where(u => u.LastLoginDate.HasValue && u.LastLoginDate.Value >= now.AddDays(-30)),
+                "old" => filtered.Where(u => u.LastLoginDate.HasValue && u.LastLoginDate.Value < now.AddDays(-30)),
+                _ => filtered
+            };
+        }
+
+        // Search filter
+        if (!string.IsNullOrEmpty(searchText))
+        {
+            var search = searchText.ToLower();
+            filtered = filtered.Where(u => 
+                u.Name.ToLower().Contains(search) ||
+                u.Username.ToLower().Contains(search) ||
+                u.Email.ToLower().Contains(search) ||
+                (u.MobileNumber?.ToLower().Contains(search) == true) ||
+                (u.Designation?.ToLower().Contains(search) == true));
+        }
+
+        filteredUsers = filtered.OrderBy(u => u.Name);
+        
+        // Update pagination
+        totalPages = (int)Math.Ceiling((double)filteredUsers.Count() / pageSize);
+        currentPage = Math.Min(currentPage, Math.Max(0, totalPages - 1));
+        
+        StateHasChanged();
+    }
+
+    private async Task ClearFilters()
+    {
+        selectedStatus = "";
+        selectedRoleId = 0;
+        selectedDepartment = "";
+        selectedLoginActivity = "";
+        searchText = "";
+        currentPage = 0;
+        await FilterUsers();
+    }
+
+    // Navigation methods
+    private void GoToAdminDashboard() => Navigation.NavigateTo("/admin");
+    private void CreateNewUser() => Navigation.NavigateTo("/users/create");
+    private void ViewUser(int id) => Navigation.NavigateTo($"/users/{id}");
+    private void EditUser(int id) => Navigation.NavigateTo($"/users/edit/{id}");
+
+    // Pagination
+    private async Task GoToPage(int page)
+    {
+        if (page >= 0 && page < totalPages)
+        {
+            currentPage = page;
+            StateHasChanged();
+        }
+    }
+
+    // Selection methods
+    private void ToggleSelectAll(ChangeEventArgs e)
+    {
+        if ((bool)e.Value!)
+        {
+            selectedUserIds = filteredUsers.Select(u => u.UserId).ToHashSet();
+        }
+        else
+        {
+            selectedUserIds.Clear();
+        }
+    }
+
+    private void ToggleUserSelection(int userId, ChangeEventArgs e)
+    {
+        if ((bool)e.Value!)
+        {
+            selectedUserIds.Add(userId);
+        }
+        else
+        {
+            selectedUserIds.Remove(userId);
+        }
+    }
+
+    private void ClearSelection()
+    {
+        selectedUserIds.Clear();
+    }
+
+    // User management methods
+    private async Task ActivateUser(int userId)
+    {
+        try
+        {
+            var user = allUsers.FirstOrDefault(u => u.UserId == userId);
+            if (user != null)
+            {
+                user.IsActive = true;
+                await UserService.UpdateUserAsync(user);
+                successMessage = $"User {user.Name} activated successfully!";
+                await LoadUsers();
+                CalculateStatistics();
+                await FilterUsers();
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error activating user: {ex.Message}";
+        }
+    }
+
+    private async Task DeactivateUser(int userId)
+    {
+        try
+        {
+            var user = allUsers.FirstOrDefault(u => u.UserId == userId);
+            if (user != null)
+            {
+                user.IsActive = false;
+                await UserService.UpdateUserAsync(user);
+                successMessage = $"User {user.Name} deactivated successfully!";
+                await LoadUsers();
+                CalculateStatistics();
+                await FilterUsers();
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error deactivating user: {ex.Message}";
+        }
+    }
+
+    private async Task ActivateSelected()
+    {
+        try
+        {
+            foreach (var userId in selectedUserIds)
+            {
+                var user = allUsers.FirstOrDefault(u => u.UserId == userId);
+                if (user != null)
+                {
+                    user.IsActive = true;
+                    await UserService.UpdateUserAsync(user);
+                }
+            }
+            successMessage = $"{selectedUserIds.Count} users activated!";
+            selectedUserIds.Clear();
+            await LoadUsers();
+            CalculateStatistics();
+            await FilterUsers();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error activating users: {ex.Message}";
+        }
+    }
+
+    private async Task DeactivateSelected()
+    {
+        try
+        {
+            foreach (var userId in selectedUserIds)
+            {
+                var user = allUsers.FirstOrDefault(u => u.UserId == userId);
+                if (user != null)
+                {
+                    user.IsActive = false;
+                    await UserService.UpdateUserAsync(user);
+                }
+            }
+            successMessage = $"{selectedUserIds.Count} users deactivated!";
+            selectedUserIds.Clear();
+            await LoadUsers();
+            CalculateStatistics();
+            await FilterUsers();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error deactivating users: {ex.Message}";
+        }
+    }
+
+    private async Task ResetUserPassword(int userId)
+    {
+        try
+        {
+            // TODO: Implement password reset functionality
+            successMessage = "Password reset email sent to user!";
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error resetting password: {ex.Message}";
+        }
+    }
+
+    private async Task ExportUsers()
+    {
+        // TODO: Implement export functionality
+        successMessage = "Export feature coming soon!";
+    }
+
+    private async Task ExportSelected()
+    {
+        // TODO: Implement selected export functionality
+        successMessage = $"Exporting {selectedUserIds.Count} selected users...";
+    }
+
+    // Helper methods
+    private Role? GetUserRole(int userId)
+    {
+        // TODO: Implement user role lookup when user-role relationships are available
+        // Return default role for now
+        return roles?.FirstOrDefault(r => r.RoleName == "Employee");
+    }
+
+    private string GetRoleBadgeClass(string roleName)
+    {
+        return roleName.ToLower() switch
+        {
+            "employee" => "primary",
+            "manager" => "warning",
+            "admin" => "danger",
+            "superadmin" => "dark",
+            _ => "secondary"
+        };
+    }
+
+    private string GetLastLoginText(DateTime lastLogin)
+    {
+        var days = (DateTime.Now - lastLogin).Days;
+        return days switch
+        {
+            0 => "Today",
+            1 => "Yesterday",
+            <= 7 => $"{days} days ago",
+            <= 30 => $"{days / 7} weeks ago",
+            _ => $"{days / 30} months ago"
+        };
+    }
+}

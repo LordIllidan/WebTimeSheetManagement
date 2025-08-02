@@ -1,0 +1,387 @@
+@page "/expenses/delete/{id:int}"
+@using WebTimeSheetManagement.Services.Interfaces
+@using WebTimeSheetManagement.Models
+@inject IExpenseService ExpenseService
+@inject NavigationManager Navigation
+
+<PageTitle>Delete Expense - TimeSheet Management</PageTitle>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h1 class="text-danger">Delete Expense Report</h1>
+                <button class="btn btn-secondary" @onclick="GoBack">
+                    <i class="fas fa-arrow-left"></i> Back to Expenses
+                </button>
+            </div>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="text-center">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p>Loading expense...</p>
+        </div>
+    }
+    else if (expense == null)
+    {
+        <div class="alert alert-danger">
+            <h4>Expense Not Found</h4>
+            <p>The requested expense could not be found.</p>
+            <button class="btn btn-primary" @onclick="GoBack">Go Back</button>
+        </div>
+    }
+    else if (!CanDelete())
+    {
+        <div class="alert alert-warning">
+            <h4>Cannot Delete Expense</h4>
+            <p>This expense cannot be deleted because it has status: <strong>@expense.Status</strong></p>
+            <p>Only Draft expenses can be deleted.</p>
+            <button class="btn btn-primary" @onclick="GoBack">Go Back</button>
+        </div>
+    }
+    else
+    {
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card border-danger">
+                    <div class="card-header bg-danger text-white">
+                        <h5>⚠️ Confirm Deletion</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-warning">
+                            <strong>Warning:</strong> This action cannot be undone. The expense report and all associated data will be permanently deleted.
+                        </div>
+
+                        <h6>Expense Details:</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <dl class="row">
+                                    <dt class="col-sm-4">Employee:</dt>
+                                    <dd class="col-sm-8">@expense.User.Name</dd>
+                                    
+                                    <dt class="col-sm-4">Project:</dt>
+                                    <dd class="col-sm-8">
+                                        @expense.Project.ProjectName<br />
+                                        <small class="text-muted">@expense.Project.ProjectCode</small>
+                                    </dd>
+                                    
+                                    <dt class="col-sm-4">Period:</dt>
+                                    <dd class="col-sm-8">
+                                        @expense.FromDate.ToString("MM/dd/yyyy") - 
+                                        @expense.ToDate.ToString("MM/dd/yyyy")
+                                    </dd>
+                                    
+                                    @if (!string.IsNullOrEmpty(expense.VoucherId))
+                                    {
+                                        <dt class="col-sm-4">Voucher ID:</dt>
+                                        <dd class="col-sm-8">
+                                            <span class="badge bg-info">@expense.VoucherId</span>
+                                        </dd>
+                                    }
+                                </dl>
+                            </div>
+                            <div class="col-md-6">
+                                <dl class="row">
+                                    <dt class="col-sm-4">Status:</dt>
+                                    <dd class="col-sm-8">
+                                        <span class="badge @GetStatusBadgeClass()">@expense.Status</span>
+                                    </dd>
+                                    
+                                    <dt class="col-sm-4">Total Amount:</dt>
+                                    <dd class="col-sm-8">
+                                        <h4 class="text-success mb-0">$@expense.TotalAmount.ToString("F2")</h4>
+                                    </dd>
+                                    
+                                    <dt class="col-sm-4">Created:</dt>
+                                    <dd class="col-sm-8">@expense.CreatedOn.ToString("MM/dd/yyyy HH:mm")</dd>
+                                </dl>
+                            </div>
+                        </div>
+
+                        <h6 class="mt-4">Expense Breakdown:</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Category</th>
+                                        <th class="text-center">Amount</th>
+                                        <th class="text-center">Percentage</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td><i class="fas fa-bed text-primary me-2"></i>Hotel Bills</td>
+                                        <td class="text-center">$@expense.HotelBills.ToString("F2")</td>
+                                        <td class="text-center">@GetCategoryPercentage(expense.HotelBills)%</td>
+                                    </tr>
+                                    <tr>
+                                        <td><i class="fas fa-plane text-info me-2"></i>Travel Bills</td>
+                                        <td class="text-center">$@expense.TravelBills.ToString("F2")</td>
+                                        <td class="text-center">@GetCategoryPercentage(expense.TravelBills)%</td>
+                                    </tr>
+                                    <tr>
+                                        <td><i class="fas fa-utensils text-warning me-2"></i>Meals Bills</td>
+                                        <td class="text-center">$@expense.MealsBills.ToString("F2")</td>
+                                        <td class="text-center">@GetCategoryPercentage(expense.MealsBills)%</td>
+                                    </tr>
+                                    <tr>
+                                        <td><i class="fas fa-receipt text-secondary me-2"></i>Other Bills</td>
+                                        <td class="text-center">$@expense.OtherBills.ToString("F2")</td>
+                                        <td class="text-center">@GetCategoryPercentage(expense.OtherBills)%</td>
+                                    </tr>
+                                </tbody>
+                                <tfoot class="table-light">
+                                    <tr>
+                                        <th>Total</th>
+                                        <th class="text-center">$@expense.TotalAmount.ToString("F2")</th>
+                                        <th class="text-center">100%</th>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(expense.PurposeOrReason))
+                        {
+                            <h6 class="mt-4">Business Purpose:</h6>
+                            <div class="card">
+                                <div class="card-body">
+                                    <p class="mb-0">@expense.PurposeOrReason</p>
+                                </div>
+                            </div>
+                        }
+
+                        @if (errorMessage != null)
+                        {
+                            <div class="alert alert-danger mt-3">
+                                @errorMessage
+                            </div>
+                        }
+
+                        <div class="d-flex justify-content-between mt-4">
+                            <button type="button" class="btn btn-secondary" @onclick="GoBack">
+                                <i class="fas fa-times"></i> Cancel
+                            </button>
+                            <button type="button" class="btn btn-danger" @onclick="ConfirmDelete" disabled="@isDeleting">
+                                @if (isDeleting)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                }
+                                <i class="fas fa-trash"></i> Yes, Delete Expense
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card border-info">
+                    <div class="card-header bg-info text-white">
+                        <h6>Deletion Policy</h6>
+                    </div>
+                    <div class="card-body">
+                        <h6>What will be deleted:</h6>
+                        <ul class="list-unstyled">
+                            <li><i class="fas fa-check text-danger me-2"></i>Expense record</li>
+                            <li><i class="fas fa-check text-danger me-2"></i>Category breakdown data</li>
+                            <li><i class="fas fa-check text-danger me-2"></i>Business purpose</li>
+                            <li><i class="fas fa-check text-danger me-2"></i>Associated documents</li>
+                            <li><i class="fas fa-check text-danger me-2"></i>Audit trail</li>
+                        </ul>
+
+                        <hr />
+
+                        <h6>Conditions for deletion:</h6>
+                        <ul class="list-unstyled">
+                            <li>
+                                <i class="fas fa-info-circle text-info me-2"></i>
+                                Only <strong>Draft</strong> expenses can be deleted
+                            </li>
+                            <li>
+                                <i class="fas fa-info-circle text-info me-2"></i>
+                                Submitted/Approved expenses cannot be deleted
+                            </li>
+                            <li>
+                                <i class="fas fa-info-circle text-info me-2"></i>
+                                You can only delete your own expenses
+                            </li>
+                        </ul>
+
+                        <hr />
+
+                        <div class="text-muted small">
+                            <strong>Alternative actions:</strong><br />
+                            If you need to make changes, consider editing the expense instead of deleting it.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mt-3 border-warning">
+                    <div class="card-header bg-warning text-dark">
+                        <h6>Expense Summary</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row text-center">
+                            <div class="col-6">
+                                <h6 class="text-muted">Period</h6>
+                                <strong>@GetTotalDays() days</strong>
+                            </div>
+                            <div class="col-6">
+                                <h6 class="text-muted">Avg/Day</h6>
+                                <strong>$@GetAveragePerDay().ToString("F2")</strong>
+                            </div>
+                        </div>
+                        
+                        <hr />
+                        
+                        <div class="small">
+                            <strong>Highest Category:</strong> @GetHighestCategory()<br />
+                            <strong>Created:</strong> @expense.CreatedOn.ToString("MM/dd/yyyy")<br />
+                            <strong>Days Old:</strong> @((DateTime.Now - expense.CreatedOn).Days) days
+                        </div>
+                    </div>
+                </div>
+
+                @if (GetTotalDays() > 30)
+                {
+                    <div class="card mt-3 border-warning">
+                        <div class="card-header bg-warning text-dark">
+                            <h6 class="mb-0">⚠️ Long Period</h6>
+                        </div>
+                        <div class="card-body">
+                            <p class="mb-0">
+                                This expense covers a period of <strong>@GetTotalDays() days</strong>.
+                                Consider breaking it into monthly reports for better tracking.
+                            </p>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public int Id { get; set; }
+    
+    private Expense? expense;
+    private bool isLoading = true;
+    private bool isDeleting = false;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadExpense();
+    }
+
+    private async Task LoadExpense()
+    {
+        try
+        {
+            expense = await ExpenseService.GetExpenseByIdAsync(Id);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error loading expense: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task ConfirmDelete()
+    {
+        if (expense == null) return;
+
+        isDeleting = true;
+        errorMessage = null;
+
+        try
+        {
+            var success = await ExpenseService.DeleteExpenseAsync(expense.ExpenseId);
+            
+            if (success)
+            {
+                // Navigate back with success message
+                Navigation.NavigateTo("/expenses?deleted=true");
+            }
+            else
+            {
+                errorMessage = "Failed to delete the expense. Please try again.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error deleting expense: {ex.Message}";
+        }
+        finally
+        {
+            isDeleting = false;
+        }
+    }
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo("/expenses");
+    }
+
+    private bool CanDelete()
+    {
+        // TODO: Add proper user authorization logic
+        return expense != null && expense.Status == ExpenseStatus.Draft;
+    }
+
+    private string GetStatusBadgeClass()
+    {
+        if (expense == null) return "bg-secondary";
+        
+        return expense.Status.ToString().ToLower() switch
+        {
+            "draft" => "bg-secondary",
+            "submitted" => "bg-warning text-dark",
+            "approved" => "bg-success",
+            "rejected" => "bg-danger",
+            _ => "bg-secondary"
+        };
+    }
+
+    private string GetCategoryPercentage(decimal amount)
+    {
+        if (expense?.TotalAmount == 0) return "0";
+        return Math.Round((double)(amount / expense.TotalAmount * 100), 1).ToString("F1");
+    }
+
+    private int GetTotalDays()
+    {
+        if (expense == null) return 0;
+        return (expense.ToDate - expense.FromDate).Days + 1;
+    }
+
+    private decimal GetAveragePerDay()
+    {
+        var totalDays = GetTotalDays();
+        if (totalDays == 0 || expense == null) return 0;
+        return expense.TotalAmount / totalDays;
+    }
+
+    private string GetHighestCategory()
+    {
+        if (expense == null) return "None";
+        
+        var categories = new[]
+        {
+            (expense.HotelBills, "Hotel"),
+            (expense.TravelBills, "Travel"),
+            (expense.MealsBills, "Meals"),
+            (expense.OtherBills, "Other")
+        };
+        
+        var highest = categories.OrderByDescending(c => c.Item1).First();
+        return $"{highest.Item2} ($${highest.Item1:F2})";
+    }
+}

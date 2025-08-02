@@ -1,0 +1,312 @@
+@page "/expenses"
+@using WebTimeSheetManagement.Services.Interfaces
+@using WebTimeSheetManagement.Models
+@inject IExpenseService ExpenseService
+@inject NavigationManager Navigation
+
+<PageTitle>Expenses - TimeSheet Management</PageTitle>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h1>Expenses</h1>
+                <button class="btn btn-primary" @onclick="CreateNewExpense">
+                    <i class="fas fa-plus"></i> New Expense
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <input type="text" class="form-control" placeholder="Search..." @bind="searchTerm"
+                                @onkeyup="OnSearchKeyUp" />
+                        </div>
+                        <div class="col-md-3">
+                            <select class="form-select" @bind="selectedStatus" @bind:after="OnStatusChanged">
+                                <option value="">All Status</option>
+                                <option value="Draft">Draft</option>
+                                <option value="Submitted">Submitted</option>
+                                <option value="Approved">Approved</option>
+                                <option value="Rejected">Rejected</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <button class="btn btn-secondary" @onclick="LoadExpenses">
+                                <i class="fas fa-search"></i> Search
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    @if (isLoading)
+                    {
+                        <div class="text-center">
+                            <div class="spinner-border" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+                    }
+                    else if (expenses?.Any() == true)
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>User</th>
+                                        <th>Project</th>
+                                        <th>Purpose</th>
+                                        <th>From Date</th>
+                                        <th>To Date</th>
+                                        <th>Total Amount</th>
+                                        <th>Status</th>
+                                        <th>Submitted On</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var expense in expenses)
+                                    {
+                                        <tr>
+                                            <td>@expense.User.Name</td>
+                                            <td>@expense.Project.ProjectName</td>
+                                            <td>
+                                                <span title="@expense.PurposeOrReason">
+                                                    @(expense.PurposeOrReason.Length > 30 ?
+                                                                                                expense.PurposeOrReason.Substring(0, 30) + "..." :
+                                                                                                expense.PurposeOrReason)
+                                            </span>
+                                        </td>
+                                        <td>@expense.FromDate.ToString("MM/dd/yyyy")</td>
+                                        <td>@expense.ToDate.ToString("MM/dd/yyyy")</td>
+                                        <td class="text-end">
+                                            <span class="fw-bold text-success">$@expense.TotalAmount.ToString("F2")</span>
+                                        </td>
+                                        <td>
+                                            <span class="badge @GetStatusBadgeClass(expense.Status.ToString())">
+                                                @expense.Status
+                                            </span>
+                                        </td>
+                                        <td>@(expense.SubmittedOn?.ToString("MM/dd/yyyy HH:mm") ?? "-")</td>
+                                        <td>
+                                            <div class="btn-group" role="group">
+                                                <button class="btn btn-sm btn-outline-primary"
+                                                    @onclick="() => ViewExpense(expense.ExpenseId)">
+                                                    <i class="fas fa-eye"></i>
+                                                </button>
+                                            @if (CanEditExpense(expense))
+                                                    {
+                                                        <button class="btn btn-sm btn-outline-warning"
+                                                            @onclick="() => EditExpense(expense.ExpenseId)">
+                                                            <i class="fas fa-edit"></i>
+                                                        </button>
+                                                    }
+                                                    @if (CanDeleteExpense(expense))
+                                                    {
+                                                        <button class="btn btn-sm btn-outline-danger"
+                                                            @onclick="() => DeleteExpense(expense.ExpenseId)">
+                                                            <i class="fas fa-trash"></i>
+                                                        </button>
+                                                    }
+                                                    @if (CanApproveExpense(expense))
+                                                    {
+                                                        <button class="btn btn-sm btn-outline-success"
+                                                            @onclick="() => ApproveExpense(expense.ExpenseId)">
+                                                            <i class="fas fa-check"></i>
+                                                        </button>
+                                                        <button class="btn btn-sm btn-outline-danger"
+                                                            @onclick="() => RejectExpense(expense.ExpenseId)">
+                                                            <i class="fas fa-times"></i>
+                                                        </button>
+                                                    }
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Summary Card -->
+                        <div class="row mt-3">
+                            <div class="col-md-3">
+                                <div class="card bg-light">
+                                    <div class="card-body text-center">
+                                        <h6 class="card-title">Total Expenses</h6>
+                                        <h4 class="text-primary">@expenses.Count()</h4>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card bg-light">
+                                    <div class="card-body text-center">
+                                        <h6 class="card-title">Total Amount</h6>
+                                        <h4 class="text-success">$@expenses.Sum(e => e.TotalAmount).ToString("F2")</h4>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card bg-light">
+                                    <div class="card-body text-center">
+                                        <h6 class="card-title">Pending</h6>
+                                        <h4 class="text-warning">@expenses.Count(e => e.Status == ExpenseStatus.Submitted)
+                                        </h4>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card bg-light">
+                                    <div class="card-body text-center">
+                                        <h6 class="card-title">Approved</h6>
+                                        <h4 class="text-success">@expenses.Count(e => e.Status == ExpenseStatus.Approved)
+                                        </h4>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center py-4">
+                            <i class="fas fa-money-bill fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">No expenses found</h5>
+                            <p class="text-muted">Create your first expense report to get started.</p>
+                            <button class="btn btn-primary" @onclick="CreateNewExpense">
+                                <i class="fas fa-plus"></i> Create Expense
+                            </button>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private IEnumerable<Expense>? expenses;
+    private bool isLoading = true;
+    private string searchTerm = string.Empty;
+    private string selectedStatus = string.Empty;
+    private int currentPage = 1;
+    private int pageSize = 10;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadExpenses();
+    }
+
+    private async Task LoadExpenses()
+    {
+        isLoading = true;
+        try
+        {
+            // TODO: Add user context to get current user ID
+            // For now, load all expenses
+            expenses = await ExpenseService.GetExpensesWithPaginationAsync(currentPage, pageSize, searchTerm);
+        }
+        catch (Exception ex)
+        {
+            // TODO: Add proper error handling and logging
+            Console.WriteLine($"Error loading expenses: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task OnSearchKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            currentPage = 1;
+            await LoadExpenses();
+        }
+    }
+
+    private async Task OnStatusChanged()
+    {
+        currentPage = 1;
+        await LoadExpenses();
+    }
+
+    private void CreateNewExpense()
+    {
+        Navigation.NavigateTo("/expenses/create");
+    }
+
+    private void ViewExpense(int id)
+    {
+        Navigation.NavigateTo($"/expenses/{id}");
+    }
+
+    private void EditExpense(int id)
+    {
+        Navigation.NavigateTo($"/expenses/edit/{id}");
+    }
+
+    private async Task DeleteExpense(int id)
+    {
+        // TODO: Add confirmation dialog
+        var success = await ExpenseService.DeleteExpenseAsync(id);
+        if (success)
+        {
+            await LoadExpenses();
+        }
+    }
+
+    private async Task ApproveExpense(int id)
+    {
+        // TODO: Add current user context
+        var success = await ExpenseService.ApproveExpenseAsync(id, 1, "Approved via web interface");
+        if (success)
+        {
+            await LoadExpenses();
+        }
+    }
+
+    private async Task RejectExpense(int id)
+    {
+        // TODO: Add rejection reason dialog
+        var success = await ExpenseService.RejectExpenseAsync(id, 1, "Rejected via web interface");
+        if (success)
+        {
+            await LoadExpenses();
+        }
+    }
+
+    private string GetStatusBadgeClass(string status)
+    {
+        return status.ToLower() switch
+        {
+            "draft" => "bg-secondary",
+            "submitted" => "bg-warning text-dark",
+            "approved" => "bg-success",
+            "rejected" => "bg-danger",
+            _ => "bg-secondary"
+        };
+    }
+
+    private bool CanEditExpense(Expense expense)
+    {
+        // TODO: Add proper user authorization logic
+        return expense.Status == ExpenseStatus.Draft || expense.Status == ExpenseStatus.Rejected;
+    }
+
+    private bool CanDeleteExpense(Expense expense)
+    {
+        // TODO: Add proper user authorization logic
+        return expense.Status == ExpenseStatus.Draft;
+    }
+
+    private bool CanApproveExpense(Expense expense)
+    {
+        // TODO: Add proper user authorization logic - only managers/admins
+        return expense.Status == ExpenseStatus.Submitted;
+    }
+}

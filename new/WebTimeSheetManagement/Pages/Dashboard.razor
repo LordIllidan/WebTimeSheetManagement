@@ -1,0 +1,241 @@
+@page "/dashboard"
+@using WebTimeSheetManagement.Services.Interfaces
+@inject ITimeSheetService TimeSheetService
+@inject IExpenseService ExpenseService
+@inject IUserService UserService
+@inject IProjectService ProjectService
+
+<PageTitle>Dashboard - TimeSheet Management</PageTitle>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <h1 class="page-header">Dashboard</h1>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-3 col-md-6">
+            <div class="card border-primary">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h3 class="text-primary">@pendingTimeSheets</h3>
+                            <p class="card-text">Pending TimeSheets</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-clock fa-3x text-primary"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <a href="/timesheets" class="btn btn-primary btn-sm">View Details</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6">
+            <div class="card border-success">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h3 class="text-success">@approvedTimeSheets</h3>
+                            <p class="card-text">Approved TimeSheets</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-check-circle fa-3x text-success"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <a href="/timesheets/approved" class="btn btn-success btn-sm">View Details</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6">
+            <div class="card border-warning">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h3 class="text-warning">@pendingExpenses</h3>
+                            <p class="card-text">Pending Expenses</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-money-bill fa-3x text-warning"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <a href="/expenses" class="btn btn-warning btn-sm">View Details</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6">
+            <div class="card border-info">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h3 class="text-info">@totalUsers</h3>
+                            <p class="card-text">Total Users</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-users fa-3x text-info"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <a href="/users" class="btn btn-info btn-sm">View Details</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Recent TimeSheets</h5>
+                </div>
+                <div class="card-body">
+                    @if (recentTimeSheets?.Any() == true)
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>User</th>
+                                        <th>Project</th>
+                                        <th>Week</th>
+                                        <th>Status</th>
+                                        <th>Hours</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var timesheet in recentTimeSheets)
+                                    {
+                                        <tr>
+                                            <td>@timesheet.User.Name</td>
+                                            <td>@timesheet.Project.ProjectName</td>
+                                                                                            <td>@timesheet.FromDate.ToString("MM/dd/yyyy")</td>
+                                            <td>
+                                                <span class="badge @GetStatusBadgeClass(timesheet.Status.ToString())">
+                                                    @timesheet.Status
+                                                </span>
+                                            </td>
+                                            <td>@timesheet.TotalHours</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-muted">No recent timesheets found.</p>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Recent Expenses</h5>
+                </div>
+                <div class="card-body">
+                    @if (recentExpenses?.Any() == true)
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>User</th>
+                                        <th>Project</th>
+                                        <th>Amount</th>
+                                        <th>Status</th>
+                                        <th>Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var expense in recentExpenses)
+                                    {
+                                        <tr>
+                                            <td>@expense.User.Name</td>
+                                            <td>@expense.Project.ProjectName</td>
+                                            <td>$@expense.TotalAmount.ToString("F2")</td>
+                                            <td>
+                                                <span class="badge @GetStatusBadgeClass(expense.Status.ToString())">
+                                                    @expense.Status
+                                                </span>
+                                            </td>
+                                            <td>@expense.FromDate.ToString("MM/dd/yyyy")</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-muted">No recent expenses found.</p>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private int pendingTimeSheets = 0;
+    private int approvedTimeSheets = 0;
+    private int pendingExpenses = 0;
+    private int totalUsers = 0;
+    private IEnumerable<WebTimeSheetManagement.Models.TimeSheet>? recentTimeSheets;
+    private IEnumerable<WebTimeSheetManagement.Models.Expense>? recentExpenses;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDashboardData();
+    }
+
+    private async Task LoadDashboardData()
+    {
+        try
+        {
+            // Load counts
+            pendingTimeSheets = await
+            TimeSheetService.GetTimeSheetCountByStatusAsync(WebTimeSheetManagement.Models.TimeSheetStatus.Submitted);
+            approvedTimeSheets = await
+            TimeSheetService.GetTimeSheetCountByStatusAsync(WebTimeSheetManagement.Models.TimeSheetStatus.Approved);
+            pendingExpenses = await
+            ExpenseService.GetExpenseCountByStatusAsync(WebTimeSheetManagement.Models.ExpenseStatus.Submitted);
+            totalUsers = await UserService.GetTotalUsersCountAsync();
+
+            // Load recent data
+            var allTimeSheets = await TimeSheetService.GetTimeSheetsWithPaginationAsync(1, 5);
+            recentTimeSheets = allTimeSheets;
+
+            var allExpenses = await ExpenseService.GetExpensesWithPaginationAsync(1, 5);
+            recentExpenses = allExpenses;
+        }
+        catch (Exception ex)
+        {
+            // Log error (implement logging service later)
+            Console.WriteLine($"Error loading dashboard data: {ex.Message}");
+        }
+    }
+
+    private string GetStatusBadgeClass(string status)
+    {
+        return status.ToLower() switch
+        {
+            "draft" => "bg-secondary",
+            "submitted" => "bg-warning",
+            "approved" => "bg-success",
+            "rejected" => "bg-danger",
+            _ => "bg-secondary"
+        };
+    }
+}

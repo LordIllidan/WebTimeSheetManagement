@@ -1,0 +1,481 @@
+@page "/projects/delete/{id:int}"
+@using WebTimeSheetManagement.Services.Interfaces
+@using WebTimeSheetManagement.Models
+@inject IProjectService ProjectService
+@inject NavigationManager Navigation
+
+<PageTitle>Delete Project - TimeSheet Management</PageTitle>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h1 class="text-danger">Delete Project</h1>
+                <button class="btn btn-secondary" @onclick="GoBack">
+                    <i class="fas fa-arrow-left"></i> Back to Projects
+                </button>
+            </div>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="text-center">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p>Loading project...</p>
+        </div>
+    }
+    else if (project == null)
+    {
+        <div class="alert alert-danger">
+            <h4>Project Not Found</h4>
+            <p>The requested project could not be found.</p>
+            <button class="btn btn-primary" @onclick="GoBack">Go Back</button>
+        </div>
+    }
+    else if (!CanDelete())
+    {
+        <div class="alert alert-warning">
+            <h4>Cannot Delete Project</h4>
+            <p>This project cannot be deleted because:</p>
+            <ul>
+                @if (project.IsActive)
+                {
+                    <li>Project is currently <strong>Active</strong> - deactivate it first</li>
+                }
+                @if (hasTimeSheets)
+                {
+                    <li>Project has <strong>@timeSheetsCount TimeSheets</strong> associated with it</li>
+                }
+                @if (hasExpenses)
+                {
+                    <li>Project has <strong>@expensesCount Expenses</strong> associated with it</li>
+                }
+            </ul>
+            <p>Only inactive projects with no associated data can be deleted.</p>
+            <button class="btn btn-primary" @onclick="GoBack">Go Back</button>
+        </div>
+    }
+    else
+    {
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card border-danger">
+                    <div class="card-header bg-danger text-white">
+                        <h5>⚠️ Confirm Deletion</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-warning">
+                            <strong>Warning:</strong> This action cannot be undone. The project and all associated data will be permanently deleted.
+                        </div>
+
+                        <h6>Project Details:</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <dl class="row">
+                                    <dt class="col-sm-4">Project Code:</dt>
+                                    <dd class="col-sm-8">
+                                        <span class="badge bg-primary">@project.ProjectCode</span>
+                                    </dd>
+                                    
+                                    <dt class="col-sm-4">Project Name:</dt>
+                                    <dd class="col-sm-8"><strong>@project.ProjectName</strong></dd>
+                                    
+                                    <dt class="col-sm-4">Industry:</dt>
+                                    <dd class="col-sm-8">@project.NatureOfIndustry</dd>
+                                    
+                                    @if (!string.IsNullOrEmpty(project.ClientName))
+                                    {
+                                        <dt class="col-sm-4">Client:</dt>
+                                        <dd class="col-sm-8">@project.ClientName</dd>
+                                    }
+                                </dl>
+                            </div>
+                            <div class="col-md-6">
+                                <dl class="row">
+                                    <dt class="col-sm-4">Status:</dt>
+                                    <dd class="col-sm-8">
+                                        @if (project.IsActive)
+                                        {
+                                            <span class="badge bg-success">Active</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary">Inactive</span>
+                                        }
+                                    </dd>
+                                    
+                                    <dt class="col-sm-4">Created:</dt>
+                                    <dd class="col-sm-8">@project.CreatedOn.ToString("MM/dd/yyyy")</dd>
+                                    
+                                    @if (project.StartDate.HasValue)
+                                    {
+                                        <dt class="col-sm-4">Start Date:</dt>
+                                        <dd class="col-sm-8">@project.StartDate.Value.ToString("MM/dd/yyyy")</dd>
+                                    }
+                                    
+                                    @if (project.EndDate.HasValue)
+                                    {
+                                        <dt class="col-sm-4">End Date:</dt>
+                                        <dd class="col-sm-8">@project.EndDate.Value.ToString("MM/dd/yyyy")</dd>
+                                    }
+                                    
+                                    @if (project.Budget.HasValue && project.Budget > 0)
+                                    {
+                                        <dt class="col-sm-4">Budget:</dt>
+                                        <dd class="col-sm-8">
+                                            <strong class="text-success">$@project.Budget.Value.ToString("F2")</strong>
+                                        </dd>
+                                    }
+                                </dl>
+                            </div>
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(project.Description))
+                        {
+                            <h6 class="mt-4">Project Description:</h6>
+                            <div class="card">
+                                <div class="card-body">
+                                    <p class="mb-0">@project.Description</p>
+                                </div>
+                            </div>
+                        }
+
+                        <h6 class="mt-4">Associated Data Summary:</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Data Type</th>
+                                        <th class="text-center">Count</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td><i class="fas fa-clock text-primary me-2"></i>TimeSheets</td>
+                                        <td class="text-center">
+                                            @if (timeSheetsCount > 0)
+                                            {
+                                                <span class="badge bg-warning">@timeSheetsCount</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-success">0</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            @if (timeSheetsCount > 0)
+                                            {
+                                                <span class="text-danger">Will be deleted</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">None to delete</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><i class="fas fa-dollar-sign text-success me-2"></i>Expenses</td>
+                                        <td class="text-center">
+                                            @if (expensesCount > 0)
+                                            {
+                                                <span class="badge bg-warning">@expensesCount</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-success">0</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            @if (expensesCount > 0)
+                                            {
+                                                <span class="text-danger">Will be deleted</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">None to delete</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><i class="fas fa-users text-info me-2"></i>Team Members</td>
+                                        <td class="text-center">
+                                            @if (teamMembersCount > 0)
+                                            {
+                                                <span class="badge bg-info">@teamMembersCount</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-success">0</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            @if (teamMembersCount > 0)
+                                            {
+                                                <span class="text-warning">Assignments removed</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">None assigned</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        @if (errorMessage != null)
+                        {
+                            <div class="alert alert-danger mt-3">
+                                @errorMessage
+                            </div>
+                        }
+
+                        <div class="d-flex justify-content-between mt-4">
+                            <button type="button" class="btn btn-secondary" @onclick="GoBack">
+                                <i class="fas fa-times"></i> Cancel
+                            </button>
+                            <button type="button" class="btn btn-danger" @onclick="ConfirmDelete" disabled="@isDeleting">
+                                @if (isDeleting)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                }
+                                <i class="fas fa-trash"></i> Yes, Delete Project
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card border-info">
+                    <div class="card-header bg-info text-white">
+                        <h6>Deletion Policy</h6>
+                    </div>
+                    <div class="card-body">
+                        <h6>What will be deleted:</h6>
+                        <ul class="list-unstyled">
+                            <li><i class="fas fa-check text-danger me-2"></i>Project record</li>
+                            <li><i class="fas fa-check text-danger me-2"></i>Project timeline data</li>
+                            <li><i class="fas fa-check text-danger me-2"></i>Budget information</li>
+                            <li><i class="fas fa-check text-danger me-2"></i>Associated timesheets</li>
+                            <li><i class="fas fa-check text-danger me-2"></i>Associated expenses</li>
+                            <li><i class="fas fa-check text-danger me-2"></i>Team assignments</li>
+                        </ul>
+
+                        <hr />
+
+                        <h6>Conditions for deletion:</h6>
+                        <ul class="list-unstyled">
+                            <li>
+                                <i class="fas fa-info-circle text-info me-2"></i>
+                                Project must be <strong>Inactive</strong>
+                            </li>
+                            <li>
+                                <i class="fas fa-info-circle text-info me-2"></i>
+                                Ideally no associated data
+                            </li>
+                            <li>
+                                <i class="fas fa-info-circle text-info me-2"></i>
+                                Admin or project owner permissions
+                            </li>
+                        </ul>
+
+                        <hr />
+
+                        <div class="text-muted small">
+                            <strong>Alternative actions:</strong><br />
+                            Consider deactivating the project instead of deleting it to preserve historical data.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mt-3 border-warning">
+                    <div class="card-header bg-warning text-dark">
+                        <h6>Project Summary</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row text-center">
+                            <div class="col-6">
+                                <h6 class="text-muted">Duration</h6>
+                                @if (project.StartDate.HasValue && project.EndDate.HasValue)
+                                {
+                                    <strong>@((project.EndDate.Value - project.StartDate.Value).Days) days</strong>
+                                }
+                                else if (project.StartDate.HasValue)
+                                {
+                                    <strong>@((DateTime.Now - project.StartDate.Value).Days) days</strong>
+                                }
+                                else
+                                {
+                                    <strong>Unknown</strong>
+                                }
+                            </div>
+                            <div class="col-6">
+                                <h6 class="text-muted">Age</h6>
+                                <strong>@((DateTime.Now - project.CreatedOn).Days) days</strong>
+                            </div>
+                        </div>
+                        
+                        <hr />
+                        
+                        <div class="small">
+                            <strong>Total Data:</strong> @(timeSheetsCount + expensesCount) records<br />
+                            <strong>Team Size:</strong> @teamMembersCount members<br />
+                            @if (project.Budget.HasValue)
+                            {
+                                <strong>Budget:</strong> $@project.Budget.Value.ToString("F2")<br />
+                            }
+                            <strong>Industry:</strong> @project.NatureOfIndustry
+                        </div>
+                    </div>
+                </div>
+
+                @if (project.IsActive)
+                {
+                    <div class="card mt-3 border-danger">
+                        <div class="card-header bg-danger text-white">
+                            <h6 class="mb-0">🚫 Active Project</h6>
+                        </div>
+                        <div class="card-body">
+                            <p class="mb-0">
+                                This project is currently active and cannot be deleted.
+                                Deactivate it first, then try deleting again.
+                            </p>
+                        </div>
+                    </div>
+                }
+
+                @if (hasTimeSheets || hasExpenses)
+                {
+                    <div class="card mt-3 border-warning">
+                        <div class="card-header bg-warning text-dark">
+                            <h6 class="mb-0">⚠️ Data Loss Warning</h6>
+                        </div>
+                        <div class="card-body">
+                            <p class="mb-0">
+                                Deleting this project will permanently remove all associated timesheets and expenses.
+                                Consider archiving instead of deleting.
+                            </p>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public int Id { get; set; }
+    
+    private Project? project;
+    private bool isLoading = true;
+    private bool isDeleting = false;
+    private string? errorMessage;
+    
+    // Associated data counts
+    private int timeSheetsCount = 0;
+    private int expensesCount = 0;
+    private int teamMembersCount = 0;
+    private bool hasTimeSheets => timeSheetsCount > 0;
+    private bool hasExpenses => expensesCount > 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadProject();
+        await LoadAssociatedDataCounts();
+    }
+
+    private async Task LoadProject()
+    {
+        try
+        {
+            project = await ProjectService.GetProjectByIdAsync(Id);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error loading project: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task LoadAssociatedDataCounts()
+    {
+        try
+        {
+            // TODO: Implement these methods
+            // timeSheetsCount = await ProjectService.GetProjectTimeSheetsCountAsync(Id);
+            // expensesCount = await ProjectService.GetProjectExpensesCountAsync(Id);
+            // teamMembersCount = await ProjectService.GetProjectTeamMembersCountAsync(Id);
+            
+            timeSheetsCount = 0;
+            expensesCount = 0;
+            teamMembersCount = 0;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading associated data counts: {ex.Message}");
+        }
+    }
+
+    private async Task ConfirmDelete()
+    {
+        if (project == null) return;
+
+        isDeleting = true;
+        errorMessage = null;
+
+        try
+        {
+            // Check if project can be deleted
+            if (project.IsActive)
+            {
+                errorMessage = "Cannot delete active project. Please deactivate it first.";
+                return;
+            }
+
+            var success = await ProjectService.DeleteProjectAsync(project.ProjectId);
+            
+            if (success)
+            {
+                // Navigate back with success message
+                Navigation.NavigateTo("/projects?deleted=true");
+            }
+            else
+            {
+                errorMessage = "Failed to delete the project. Please try again.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error deleting project: {ex.Message}";
+        }
+        finally
+        {
+            isDeleting = false;
+        }
+    }
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo("/projects");
+    }
+
+    private bool CanDelete()
+    {
+        if (project == null) return false;
+        
+        // Project can be deleted if:
+        // 1. It's inactive
+        // 2. Preferably has no associated data (but we can allow deletion with warning)
+        // TODO: Add proper user authorization logic
+        
+        return !project.IsActive;
+    }
+}

@@ -1,0 +1,582 @@
+@page "/admin"
+@page "/admin/dashboard"
+@using WebTimeSheetManagement.Services.Interfaces
+@using WebTimeSheetManagement.Models
+@inject IUserService UserService
+@inject IProjectService ProjectService
+@inject ITimeSheetService TimeSheetService
+@inject IExpenseService ExpenseService
+@inject NavigationManager Navigation
+
+<PageTitle>Admin Dashboard - TimeSheet Management</PageTitle>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1>
+                        <i class="fas fa-tachometer-alt me-2"></i>
+                        Admin Dashboard
+                    </h1>
+                    <p class="text-muted">System overview and management tools</p>
+                </div>
+                <div>
+                    <span class="badge bg-danger fs-6 me-2">Admin Access</span>
+                    <span class="text-muted">Last updated: @DateTime.Now.ToString("HH:mm")</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="text-center">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p>Loading dashboard data...</p>
+        </div>
+    }
+    else
+    {
+        <!-- Key Metrics Row -->
+        <div class="row mb-4">
+            <div class="col-md-3 col-sm-6 mb-3">
+                <div class="card bg-primary text-white h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h4 class="card-title">@totalUsers</h4>
+                                <p class="card-text">Total Users</p>
+                            </div>
+                            <div class="align-self-center">
+                                <i class="fas fa-users fa-2x"></i>
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <small>@activeUsers active, @inactiveUsers inactive</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-3 col-sm-6 mb-3">
+                <div class="card bg-success text-white h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h4 class="card-title">@totalProjects</h4>
+                                <p class="card-text">Total Projects</p>
+                            </div>
+                            <div class="align-self-center">
+                                <i class="fas fa-project-diagram fa-2x"></i>
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <small>@activeProjects active, @inactiveProjects completed</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-3 col-sm-6 mb-3">
+                <div class="card bg-info text-white h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h4 class="card-title">@totalTimeSheets</h4>
+                                <p class="card-text">TimeSheets</p>
+                            </div>
+                            <div class="align-self-center">
+                                <i class="fas fa-clock fa-2x"></i>
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <small>@pendingTimeSheets pending approval</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-3 col-sm-6 mb-3">
+                <div class="card bg-warning text-dark h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h4 class="card-title">@totalExpenses</h4>
+                                <p class="card-text">Expenses</p>
+                            </div>
+                            <div class="align-self-center">
+                                <i class="fas fa-dollar-sign fa-2x"></i>
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <small>$@totalExpenseAmount.ToString("F2") total amount</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions Row -->
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-lightning-bolt me-2"></i>Quick Actions</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-2 col-sm-4 mb-3">
+                                <button class="btn btn-outline-primary w-100" @onclick="NavigateToUsers">
+                                    <i class="fas fa-users fa-2x mb-2"></i><br />
+                                    Manage Users
+                                </button>
+                            </div>
+                            <div class="col-md-2 col-sm-4 mb-3">
+                                <button class="btn btn-outline-success w-100" @onclick="NavigateToProjects">
+                                    <i class="fas fa-project-diagram fa-2x mb-2"></i><br />
+                                    Manage Projects
+                                </button>
+                            </div>
+                            <div class="col-md-2 col-sm-4 mb-3">
+                                <button class="btn btn-outline-info w-100" @onclick="NavigateToAllTimeSheets">
+                                    <i class="fas fa-clock fa-2x mb-2"></i><br />
+                                    All TimeSheets
+                                </button>
+                            </div>
+                            <div class="col-md-2 col-sm-4 mb-3">
+                                <button class="btn btn-outline-warning w-100" @onclick="NavigateToAllExpenses">
+                                    <i class="fas fa-receipt fa-2x mb-2"></i><br />
+                                    All Expenses
+                                </button>
+                            </div>
+                            <div class="col-md-2 col-sm-4 mb-3">
+                                <button class="btn btn-outline-secondary w-100" @onclick="NavigateToReports">
+                                    <i class="fas fa-chart-bar fa-2x mb-2"></i><br />
+                                    Reports
+                                </button>
+                            </div>
+                            <div class="col-md-2 col-sm-4 mb-3">
+                                <button class="btn btn-outline-danger w-100" @onclick="NavigateToSystemSettings">
+                                    <i class="fas fa-cogs fa-2x mb-2"></i><br />
+                                    Settings
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Activity and Pending Approvals -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h5><i class="fas fa-exclamation-triangle me-2 text-warning"></i>Pending Approvals</h5>
+                    </div>
+                    <div class="card-body">
+                        @if (pendingApprovals?.Any() == true)
+                        {
+                            <div class="list-group list-group-flush">
+                                @foreach (var approval in pendingApprovals.Take(5))
+                                {
+                                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <strong>@approval.Type</strong><br />
+                                            <small class="text-muted">
+                                                @approval.UserName - @approval.CreatedDate.ToString("MM/dd/yyyy")
+                                            </small>
+                                        </div>
+                                        <div>
+                                            <button class="btn btn-sm btn-success me-1" @onclick="() => ApproveItem(approval)">
+                                                <i class="fas fa-check"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-danger" @onclick="() => RejectItem(approval)">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                            @if (pendingApprovals.Count() > 5)
+                            {
+                                <div class="mt-3 text-center">
+                                    <button class="btn btn-outline-primary" @onclick="NavigateToAllApprovals">
+                                        View All @pendingApprovals.Count() Pending Items
+                                    </button>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <div class="text-center text-muted">
+                                <i class="fas fa-check-circle fa-3x mb-3"></i>
+                                <p>No pending approvals</p>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h5><i class="fas fa-history me-2"></i>Recent Activity</h5>
+                    </div>
+                    <div class="card-body">
+                        @if (recentActivities?.Any() == true)
+                        {
+                            <div class="timeline">
+                                @foreach (var activity in recentActivities.Take(5))
+                                {
+                                    <div class="timeline-item">
+                                        <div class="timeline-marker bg-@activity.TypeColor"></div>
+                                        <div class="timeline-content">
+                                            <strong>@activity.Action</strong><br />
+                                            <small class="text-muted">
+                                                @activity.UserName - @activity.Timestamp.ToString("MM/dd HH:mm")
+                                            </small>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="text-center text-muted">
+                                <i class="fas fa-clock fa-3x mb-3"></i>
+                                <p>No recent activity</p>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- System Health and Statistics -->
+        <div class="row mb-4">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-chart-line me-2"></i>System Statistics</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>User Activity (Last 30 Days)</h6>
+                                <div class="progress mb-3">
+                                    <div class="progress-bar bg-success" style="width: @GetUserActivityPercentage()%"></div>
+                                </div>
+                                <small class="text-muted">@activeUsersLast30Days of @totalUsers users active</small>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Project Completion Rate</h6>
+                                <div class="progress mb-3">
+                                    <div class="progress-bar bg-info" style="width: @GetProjectCompletionPercentage()%"></div>
+                                </div>
+                                <small class="text-muted">@completedProjectsCount of @totalProjects projects completed</small>
+                            </div>
+                        </div>
+                        
+                        <hr />
+                        
+                        <div class="row text-center">
+                            <div class="col-md-3">
+                                <h6 class="text-muted">Avg. Hours/Week</h6>
+                                <h4 class="text-primary">@averageHoursPerWeek.ToString("F1")</h4>
+                            </div>
+                            <div class="col-md-3">
+                                <h6 class="text-muted">Total Revenue</h6>
+                                <h4 class="text-success">$@totalRevenue.ToString("F2")</h4>
+                            </div>
+                            <div class="col-md-3">
+                                <h6 class="text-muted">Approval Rate</h6>
+                                <h4 class="text-info">@approvalRate.ToString("F1")%</h4>
+                            </div>
+                            <div class="col-md-3">
+                                <h6 class="text-muted">System Uptime</h6>
+                                <h4 class="text-warning">99.9%</h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-bell me-2"></i>System Alerts</h5>
+                    </div>
+                    <div class="card-body">
+                        @if (systemAlerts?.Any() == true)
+                        {
+                            @foreach (var alert in systemAlerts)
+                            {
+                                <div class="alert alert-@alert.Level mb-2">
+                                    <strong>@alert.Title</strong><br />
+                                    <small>@alert.Message</small>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <div class="alert alert-success">
+                                <i class="fas fa-check-circle me-2"></i>
+                                <strong>All Systems Operational</strong><br />
+                                <small>No alerts or issues detected</small>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<style>
+    .timeline {
+        position: relative;
+        padding-left: 30px;
+    }
+    
+    .timeline-item {
+        position: relative;
+        margin-bottom: 15px;
+    }
+    
+    .timeline-marker {
+        position: absolute;
+        left: -35px;
+        top: 5px;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+    }
+    
+    .timeline::before {
+        content: '';
+        position: absolute;
+        left: -30px;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: #dee2e6;
+    }
+
+    .card-body .btn {
+        transition: transform 0.2s ease;
+    }
+
+    .card-body .btn:hover {
+        transform: translateY(-2px);
+    }
+</style>
+
+@code {
+    private bool isLoading = true;
+    
+    // Statistics
+    private int totalUsers = 0;
+    private int activeUsers = 0;
+    private int inactiveUsers = 0;
+    private int totalProjects = 0;
+    private int activeProjects = 0;
+    private int inactiveProjects = 0;
+    private int totalTimeSheets = 0;
+    private int pendingTimeSheets = 0;
+    private int totalExpenses = 0;
+    private decimal totalExpenseAmount = 0;
+    
+    // Advanced statistics
+    private int activeUsersLast30Days = 0;
+    private int completedProjectsCount = 0;
+    private decimal averageHoursPerWeek = 0;
+    private decimal totalRevenue = 0;
+    private decimal approvalRate = 0;
+
+    // Collections
+    private IEnumerable<PendingApproval>? pendingApprovals;
+    private IEnumerable<RecentActivity>? recentActivities;
+    private IEnumerable<SystemAlert>? systemAlerts;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDashboardData();
+    }
+
+    private async Task LoadDashboardData()
+    {
+        try
+        {
+            // Load basic statistics
+            await Task.WhenAll(
+                LoadUserStatistics(),
+                LoadProjectStatistics(),
+                LoadTimeSheetStatistics(),
+                LoadExpenseStatistics(),
+                LoadPendingApprovals(),
+                LoadRecentActivities(),
+                LoadSystemAlerts()
+            );
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading dashboard data: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task LoadUserStatistics()
+    {
+        // TODO: Implement these methods in UserService
+        var users = await UserService.GetAllUsersAsync();
+        totalUsers = users.Count();
+        activeUsers = users.Count(u => u.IsActive);
+        inactiveUsers = totalUsers - activeUsers;
+        
+        // Mock advanced statistics
+        activeUsersLast30Days = (int)(activeUsers * 0.8);
+    }
+
+    private async Task LoadProjectStatistics()
+    {
+        var projects = await ProjectService.GetAllProjectsAsync();
+        totalProjects = projects.Count();
+        activeProjects = projects.Count(p => p.IsActive);
+        inactiveProjects = totalProjects - activeProjects;
+        completedProjectsCount = inactiveProjects;
+    }
+
+    private async Task LoadTimeSheetStatistics()
+    {
+        var timeSheets = await TimeSheetService.GetAllTimeSheetsAsync();
+        totalTimeSheets = timeSheets.Count();
+        pendingTimeSheets = timeSheets.Count(ts => ts.Status == TimeSheetStatus.Pending);
+        
+        // Calculate average hours
+        if (timeSheets.Any())
+        {
+            averageHoursPerWeek = (decimal)timeSheets.Average(ts => ts.TotalHours);
+        }
+    }
+
+    private async Task LoadExpenseStatistics()
+    {
+        var expenses = await ExpenseService.GetAllExpensesAsync();
+        totalExpenses = expenses.Count();
+        totalExpenseAmount = expenses.Sum(e => e.TotalAmount);
+        
+        // Mock revenue calculation
+        totalRevenue = totalExpenseAmount * 1.3m; // Assuming 30% markup
+        
+        // Mock approval rate
+        var approvedExpenses = expenses.Count(e => e.Status == ExpenseStatus.Approved);
+        approvalRate = totalExpenses > 0 ? (decimal)approvedExpenses / totalExpenses * 100 : 0;
+    }
+
+    private async Task LoadPendingApprovals()
+    {
+        // TODO: Implement pending approvals service
+        pendingApprovals = new List<PendingApproval>
+        {
+            new() { Type = "TimeSheet", UserName = "John Doe", CreatedDate = DateTime.Now.AddDays(-1) },
+            new() { Type = "Expense", UserName = "Jane Smith", CreatedDate = DateTime.Now.AddDays(-2) }
+        };
+    }
+
+    private async Task LoadRecentActivities()
+    {
+        // TODO: Implement activity logging service
+        recentActivities = new List<RecentActivity>
+        {
+            new() { Action = "TimeSheet submitted", UserName = "John Doe", Timestamp = DateTime.Now.AddHours(-1), TypeColor = "info" },
+            new() { Action = "Project created", UserName = "Admin", Timestamp = DateTime.Now.AddHours(-2), TypeColor = "success" },
+            new() { Action = "User registered", UserName = "New User", Timestamp = DateTime.Now.AddHours(-3), TypeColor = "primary" }
+        };
+    }
+
+    private async Task LoadSystemAlerts()
+    {
+        // TODO: Implement system monitoring
+        systemAlerts = new List<SystemAlert>();
+        
+        // Example alerts based on data
+        var alerts = new List<SystemAlert>();
+        
+        if (pendingTimeSheets > 5)
+        {
+            alerts.Add(new SystemAlert { Level = "warning", Title = "High Pending TimeSheets", Message = $"{pendingTimeSheets} timesheets awaiting approval" });
+        }
+        
+        if (inactiveUsers > activeUsers * 0.3)
+        {
+            alerts.Add(new SystemAlert { Level = "info", Title = "Inactive Users", Message = $"{inactiveUsers} users are inactive" });
+        }
+        
+        systemAlerts = alerts;
+    }
+
+    // Navigation methods
+    private void NavigateToUsers() => Navigation.NavigateTo("/users");
+    private void NavigateToProjects() => Navigation.NavigateTo("/projects");
+    private void NavigateToAllTimeSheets() => Navigation.NavigateTo("/admin/timesheets");
+    private void NavigateToAllExpenses() => Navigation.NavigateTo("/admin/expenses");
+    private void NavigateToReports() => Navigation.NavigateTo("/admin/reports");
+    private void NavigateToSystemSettings() => Navigation.NavigateTo("/admin/settings");
+    private void NavigateToAllApprovals() => Navigation.NavigateTo("/admin/approvals");
+
+    // Helper methods
+    private decimal GetUserActivityPercentage()
+    {
+        return totalUsers > 0 ? (decimal)activeUsersLast30Days / totalUsers * 100 : 0;
+    }
+
+    private decimal GetProjectCompletionPercentage()
+    {
+        return totalProjects > 0 ? (decimal)completedProjectsCount / totalProjects * 100 : 0;
+    }
+
+    // Action methods
+    private async Task ApproveItem(PendingApproval approval)
+    {
+        // TODO: Implement approval logic
+        Console.WriteLine($"Approved: {approval.Type} for {approval.UserName}");
+        await LoadPendingApprovals(); // Refresh
+    }
+
+    private async Task RejectItem(PendingApproval approval)
+    {
+        // TODO: Implement rejection logic
+        Console.WriteLine($"Rejected: {approval.Type} for {approval.UserName}");
+        await LoadPendingApprovals(); // Refresh
+    }
+
+    // Models for dashboard data
+    public class PendingApproval
+    {
+        public string Type { get; set; } = "";
+        public string UserName { get; set; } = "";
+        public DateTime CreatedDate { get; set; }
+    }
+
+    public class RecentActivity
+    {
+        public string Action { get; set; } = "";
+        public string UserName { get; set; } = "";
+        public DateTime Timestamp { get; set; }
+        public string TypeColor { get; set; } = "";
+    }
+
+    public class SystemAlert
+    {
+        public string Level { get; set; } = "";
+        public string Title { get; set; } = "";
+        public string Message { get; set; } = "";
+    }
+}

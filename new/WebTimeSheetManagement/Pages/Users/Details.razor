@@ -1,0 +1,571 @@
+@page "/users/{id:int}"
+@using WebTimeSheetManagement.Services.Interfaces
+@using WebTimeSheetManagement.Models
+@inject IUserService UserService
+@inject NavigationManager Navigation
+
+<PageTitle>User Details - TimeSheet Management</PageTitle>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h1>User Details</h1>
+                <div>
+                    <button class="btn btn-secondary me-2" @onclick="GoBack">
+                        <i class="fas fa-arrow-left"></i> Back to Users
+                    </button>
+                    <button class="btn btn-warning" @onclick="EditUser">
+                        <i class="fas fa-edit"></i> Edit
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="text-center">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p>Loading user details...</p>
+        </div>
+    }
+    else if (user == null)
+    {
+        <div class="alert alert-danger">
+            <h4>User Not Found</h4>
+            <p>The requested user could not be found.</p>
+            <button class="btn btn-primary" @onclick="GoBack">Go Back</button>
+        </div>
+    }
+    else
+    {
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5>User Information</h5>
+                            <div>
+                                <span class="badge bg-primary me-2">ID: @user.UserId</span>
+                                @if (user.IsActive)
+                                {
+                                    <span class="badge bg-success fs-6">Active</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary fs-6">Inactive</span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-4">
+                            <div class="col-md-3 text-center">
+                                <div class="user-avatar mb-3">
+                                    <i class="fas fa-user-circle fa-8x text-muted"></i>
+                                </div>
+                                <h4>@user.Name</h4>
+                                <p class="text-muted">@user.Username</p>
+                                @if (!string.IsNullOrEmpty(user.Designation))
+                                {
+                                    <span class="badge bg-info">@user.Designation</span>
+                                }
+                            </div>
+                            <div class="col-md-9">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <dl class="row">
+                                            <dt class="col-sm-4">Full Name:</dt>
+                                            <dd class="col-sm-8"><strong>@user.Name</strong></dd>
+                                            
+                                            <dt class="col-sm-4">Username:</dt>
+                                            <dd class="col-sm-8">
+                                                <span class="badge bg-primary">@user.Username</span>
+                                            </dd>
+                                            
+                                            <dt class="col-sm-4">Email:</dt>
+                                            <dd class="col-sm-8">
+                                                <a href="mailto:@user.Email">@user.Email</a>
+                                            </dd>
+                                            
+                                            @if (!string.IsNullOrEmpty(user.MobileNumber))
+                                            {
+                                                <dt class="col-sm-4">Mobile:</dt>
+                                                <dd class="col-sm-8">
+                                                    <a href="tel:@user.MobileNumber">@user.MobileNumber</a>
+                                                </dd>
+                                            }
+                                        </dl>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <dl class="row">
+                                            <dt class="col-sm-4">Status:</dt>
+                                            <dd class="col-sm-8">
+                                                @if (user.IsActive)
+                                                {
+                                                    <span class="badge bg-success">Active</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-secondary">Inactive</span>
+                                                }
+                                            </dd>
+                                            
+                                            <dt class="col-sm-4">Created:</dt>
+                                            <dd class="col-sm-8">@user.CreatedOn.ToString("MM/dd/yyyy")</dd>
+                                            
+                                            @if (!string.IsNullOrEmpty(user.Gender))
+                                            {
+                                                <dt class="col-sm-4">Gender:</dt>
+                                                <dd class="col-sm-8">@user.Gender</dd>
+                                            }
+                                            
+                                            @if (!string.IsNullOrEmpty(user.Department))
+                                            {
+                                                <dt class="col-sm-4">Department:</dt>
+                                                <dd class="col-sm-8">
+                                                    <span class="badge bg-info">@user.Department</span>
+                                                </dd>
+                                            }
+                                            
+                                            <dt class="col-sm-4">Last Login:</dt>
+                                            <dd class="col-sm-8">
+                                                @if (user.LastLoginDate.HasValue)
+                                                {
+                                                    @user.LastLoginDate.Value.ToString("MM/dd/yyyy HH:mm")
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted">Never</span>
+                                                }
+                                            </dd>
+                                        </dl>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-4">
+                            <h6>User Roles & Permissions</h6>
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <h6>Assigned Roles:</h6>
+                                            <div class="d-flex flex-wrap gap-2">
+                                                @if (userRoles != null && userRoles.Any())
+                                                {
+                                                    @foreach (var role in userRoles)
+                                                    {
+                                                        <span class="badge bg-@GetRoleBadgeClass(role.RoleName) fs-6">
+                                                            <i class="fas fa-@GetRoleIcon(role.RoleName) me-1"></i>
+                                                            @role.RoleName
+                                                        </span>
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted">No roles assigned</span>
+                                                }
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <h6>Permissions:</h6>
+                                            <ul class="list-unstyled small">
+                                                @if (userRoles != null && userRoles.Any())
+                                                {
+                                                    @foreach (var role in userRoles)
+                                                    {
+                                                        @if (role.RoleName == "Employee")
+                                                        {
+                                                            <li><i class="fas fa-check text-success me-2"></i>Create/Edit own timesheets</li>
+                                                            <li><i class="fas fa-check text-success me-2"></i>Submit expenses</li>
+                                                            <li><i class="fas fa-check text-success me-2"></i>View own reports</li>
+                                                        }
+                                                        else if (role.RoleName == "Manager")
+                                                        {
+                                                            <li><i class="fas fa-check text-warning me-2"></i>Approve team timesheets</li>
+                                                            <li><i class="fas fa-check text-warning me-2"></i>Approve team expenses</li>
+                                                            <li><i class="fas fa-check text-warning me-2"></i>View team reports</li>
+                                                        }
+                                                        else if (role.RoleName == "Admin")
+                                                        {
+                                                            <li><i class="fas fa-check text-danger me-2"></i>Manage users</li>
+                                                            <li><i class="fas fa-check text-danger me-2"></i>Manage projects</li>
+                                                            <li><i class="fas fa-check text-danger me-2"></i>System administration</li>
+                                                        }
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    <li class="text-muted">No permissions assigned</li>
+                                                }
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-4">
+                            <h6>Activity Timeline</h6>
+                            <div class="timeline">
+                                <div class="timeline-item">
+                                    <div class="timeline-marker bg-success"></div>
+                                    <div class="timeline-content">
+                                        <strong>Account Created</strong><br />
+                                        <small class="text-muted">@user.CreatedOn.ToString("MM/dd/yyyy HH:mm")</small>
+                                    </div>
+                                </div>
+                                @if (user.LastLoginDate.HasValue)
+                                {
+                                    <div class="timeline-item">
+                                        <div class="timeline-marker bg-info"></div>
+                                        <div class="timeline-content">
+                                            <strong>Last Login</strong><br />
+                                            <small class="text-muted">@user.LastLoginDate.Value.ToString("MM/dd/yyyy HH:mm")</small>
+                                        </div>
+                                    </div>
+                                }
+                                @if (!user.IsActive)
+                                {
+                                    <div class="timeline-item">
+                                        <div class="timeline-marker bg-warning"></div>
+                                        <div class="timeline-content">
+                                            <strong>Account Deactivated</strong><br />
+                                            <small class="text-muted">Status changed to inactive</small>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h6>Quick Actions</h6>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-warning btn-sm w-100 mb-2" @onclick="EditUser">
+                            <i class="fas fa-edit"></i> Edit User
+                        </button>
+                        
+                        <button class="btn btn-info btn-sm w-100 mb-2" @onclick="ViewUserTimesheets">
+                            <i class="fas fa-clock"></i> View TimeSheets
+                        </button>
+                        
+                        <button class="btn btn-success btn-sm w-100 mb-2" @onclick="ViewUserExpenses">
+                            <i class="fas fa-dollar-sign"></i> View Expenses
+                        </button>
+                        
+                        <button class="btn btn-primary btn-sm w-100 mb-2" @onclick="SendMessage">
+                            <i class="fas fa-envelope"></i> Send Message
+                        </button>
+                        
+                        <hr />
+                        
+                        @if (user.IsActive)
+                        {
+                            <button class="btn btn-warning btn-sm w-100 mb-2" @onclick="DeactivateUser">
+                                <i class="fas fa-user-slash"></i> Deactivate User
+                            </button>
+                        }
+                        else
+                        {
+                            <button class="btn btn-success btn-sm w-100 mb-2" @onclick="ActivateUser">
+                                <i class="fas fa-user-check"></i> Activate User
+                            </button>
+                        }
+                        
+                        <button class="btn btn-outline-danger btn-sm w-100" @onclick="ResetPassword">
+                            <i class="fas fa-key"></i> Reset Password
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h6>Activity Statistics</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row text-center mb-3">
+                            <div class="col-6">
+                                <h4 class="text-primary">@totalTimesheets</h4>
+                                <small class="text-muted">TimeSheets</small>
+                            </div>
+                            <div class="col-6">
+                                <h4 class="text-success">@totalExpenses</h4>
+                                <small class="text-muted">Expenses</small>
+                            </div>
+                        </div>
+                        
+                        <div class="row text-center mb-3">
+                            <div class="col-6">
+                                <h5 class="text-info">@totalHours</h5>
+                                <small class="text-muted">Total Hours</small>
+                            </div>
+                            <div class="col-6">
+                                <h5 class="text-warning">$@totalExpenseAmount.ToString("F2")</h5>
+                                <small class="text-muted">Total Expenses</small>
+                            </div>
+                        </div>
+
+                        <hr />
+                        
+                        <div class="small">
+                            <strong>Account Age:</strong> @GetAccountAge() days<br />
+                            <strong>Login Frequency:</strong> @GetLoginFrequency()
+                        </div>
+                    </div>
+                </div>
+
+                @if (!user.IsActive)
+                {
+                    <div class="card mt-3 border-warning">
+                        <div class="card-header bg-warning text-dark">
+                            <h6 class="mb-0">⚠️ Inactive User</h6>
+                        </div>
+                        <div class="card-body">
+                            <p class="mb-0">
+                                This user account is inactive. The user cannot log in or access the system.
+                                Contact an administrator to activate the account.
+                            </p>
+                        </div>
+                    </div>
+                }
+
+                @if (user.LastLoginDate == null)
+                {
+                    <div class="card mt-3 border-info">
+                        <div class="card-header bg-info text-white">
+                            <h6 class="mb-0">ℹ️ New User</h6>
+                        </div>
+                        <div class="card-body">
+                            <p class="mb-0">
+                                This user has never logged in to the system.
+                                They may need assistance with their first login.
+                            </p>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+<style>
+    .timeline {
+        position: relative;
+        padding-left: 30px;
+    }
+    
+    .timeline-item {
+        position: relative;
+        margin-bottom: 20px;
+    }
+    
+    .timeline-marker {
+        position: absolute;
+        left: -35px;
+        top: 5px;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+    }
+    
+    .timeline::before {
+        content: '';
+        position: absolute;
+        left: -30px;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: #dee2e6;
+    }
+</style>
+
+@code {
+    [Parameter] public int Id { get; set; }
+    
+    private User? user;
+    private IEnumerable<Role>? userRoles;
+    private bool isLoading = true;
+    private int totalTimesheets = 0;
+    private int totalExpenses = 0;
+    private int totalHours = 0;
+    private decimal totalExpenseAmount = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUser();
+        await LoadUserRoles();
+        await LoadUserStatistics();
+    }
+
+    private async Task LoadUser()
+    {
+        try
+        {
+            user = await UserService.GetUserByIdAsync(Id);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading user: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task LoadUserRoles()
+    {
+        try
+        {
+            // TODO: Implement user roles loading
+            // userRoles = await UserService.GetUserRolesAsync(Id);
+            userRoles = new List<Role>(); // Temporary
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading user roles: {ex.Message}");
+        }
+    }
+
+    private async Task LoadUserStatistics()
+    {
+        try
+        {
+            // TODO: Implement these methods
+            // totalTimesheets = await UserService.GetUserTimesheetsCountAsync(Id);
+            // totalExpenses = await UserService.GetUserExpensesCountAsync(Id);
+            // totalHours = await UserService.GetUserTotalHoursAsync(Id);
+            // totalExpenseAmount = await UserService.GetUserTotalExpenseAmountAsync(Id);
+            
+            totalTimesheets = 0;
+            totalExpenses = 0;
+            totalHours = 0;
+            totalExpenseAmount = 0;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading user statistics: {ex.Message}");
+        }
+    }
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo("/users");
+    }
+
+    private void EditUser()
+    {
+        Navigation.NavigateTo($"/users/edit/{Id}");
+    }
+
+    private void ViewUserTimesheets()
+    {
+        Navigation.NavigateTo($"/timesheets?userId={Id}");
+    }
+
+    private void ViewUserExpenses()
+    {
+        Navigation.NavigateTo($"/expenses?userId={Id}");
+    }
+
+    private void SendMessage()
+    {
+        if (user != null)
+        {
+            Navigation.NavigateTo($"mailto:{user.Email}");
+        }
+    }
+
+    private async Task DeactivateUser()
+    {
+        if (user == null) return;
+
+        try
+        {
+            user.IsActive = false;
+            await UserService.UpdateUserAsync(user);
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error deactivating user: {ex.Message}");
+        }
+    }
+
+    private async Task ActivateUser()
+    {
+        if (user == null) return;
+
+        try
+        {
+            user.IsActive = true;
+            await UserService.UpdateUserAsync(user);
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error activating user: {ex.Message}");
+        }
+    }
+
+    private void ResetPassword()
+    {
+        Navigation.NavigateTo($"/users/{Id}/reset-password");
+    }
+
+    private string GetRoleBadgeClass(string roleName)
+    {
+        return roleName.ToLower() switch
+        {
+            "employee" => "primary",
+            "manager" => "warning",
+            "admin" => "danger",
+            "superadmin" => "dark",
+            _ => "secondary"
+        };
+    }
+
+    private string GetRoleIcon(string roleName)
+    {
+        return roleName.ToLower() switch
+        {
+            "employee" => "user",
+            "manager" => "users",
+            "admin" => "user-cog",
+            "superadmin" => "crown",
+            _ => "user"
+        };
+    }
+
+    private int GetAccountAge()
+    {
+        return user != null ? (DateTime.Now - user.CreatedOn).Days : 0;
+    }
+
+    private string GetLoginFrequency()
+    {
+        if (user?.LastLoginDate == null)
+            return "Never";
+        
+        var daysSinceLastLogin = (DateTime.Now - user.LastLoginDate.Value).Days;
+        return daysSinceLastLogin switch
+        {
+            0 => "Today",
+            1 => "Yesterday", 
+            <= 7 => "This week",
+            <= 30 => "This month",
+            _ => "Rarely"
+        };
+    }
+}

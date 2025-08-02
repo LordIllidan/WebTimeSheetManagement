@@ -1,0 +1,350 @@
+@page "/projects/create"
+@using WebTimeSheetManagement.Services.Interfaces
+@using WebTimeSheetManagement.Models
+@inject IProjectService ProjectService
+@inject NavigationManager Navigation
+
+<PageTitle>Create Project - TimeSheet Management</PageTitle>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h1>Create New Project</h1>
+                <button class="btn btn-secondary" @onclick="GoBack">
+                    <i class="fas fa-arrow-left"></i> Back to Projects
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Project Details</h5>
+                </div>
+                <div class="card-body">
+                    <EditForm Model="project" OnValidSubmit="HandleValidSubmit" OnInvalidSubmit="HandleInvalidSubmit">
+                        <DataAnnotationsValidator />
+                        <ValidationSummary class="alert alert-danger" />
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="projectCode" class="form-label">Project Code <span class="text-danger">*</span></label>
+                                    <InputText @bind-Value="project.ProjectCode" class="form-control" id="projectCode" 
+                                              placeholder="e.g., PROJ-2025-001" />
+                                    <div class="form-text">Unique identifier for the project</div>
+                                    <ValidationMessage For="@(() => project.ProjectCode)" class="text-danger" />
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="projectName" class="form-label">Project Name <span class="text-danger">*</span></label>
+                                    <InputText @bind-Value="project.ProjectName" class="form-control" id="projectName" 
+                                              placeholder="Enter project name" />
+                                    <ValidationMessage For="@(() => project.ProjectName)" class="text-danger" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="mb-3">
+                                    <label for="description" class="form-label">Description</label>
+                                    <InputTextArea @bind-Value="project.Description" class="form-control" id="description" 
+                                                  rows="3" placeholder="Describe the project objectives and scope..." />
+                                    <ValidationMessage For="@(() => project.Description)" class="text-danger" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="industry" class="form-label">Nature of Industry <span class="text-danger">*</span></label>
+                                    <InputSelect @bind-Value="project.NatureOfIndustry" class="form-select" id="industry">
+                                        <option value="">Select Industry...</option>
+                                        <option value="Technology">Technology</option>
+                                        <option value="Healthcare">Healthcare</option>
+                                        <option value="Finance">Finance</option>
+                                        <option value="Education">Education</option>
+                                        <option value="Manufacturing">Manufacturing</option>
+                                        <option value="Retail">Retail</option>
+                                        <option value="Real Estate">Real Estate</option>
+                                        <option value="Transportation">Transportation</option>
+                                        <option value="Energy">Energy</option>
+                                        <option value="Entertainment">Entertainment</option>
+                                        <option value="Other">Other</option>
+                                    </InputSelect>
+                                    <ValidationMessage For="@(() => project.NatureOfIndustry)" class="text-danger" />
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="status" class="form-label">Initial Status</label>
+                                    <InputSelect @bind-Value="project.IsActive" class="form-select" id="status">
+                                        <option value="true">Active</option>
+                                        <option value="false">Inactive</option>
+                                    </InputSelect>
+                                    <div class="form-text">Projects are usually created as Active</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="startDate" class="form-label">Start Date</label>
+                                    <InputDate @bind-Value="project.StartDate" class="form-control" id="startDate" />
+                                    <ValidationMessage For="@(() => project.StartDate)" class="text-danger" />
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="endDate" class="form-label">Expected End Date</label>
+                                    <InputDate @bind-Value="project.EndDate" class="form-control" id="endDate" />
+                                    <ValidationMessage For="@(() => project.EndDate)" class="text-danger" />
+                                    <div class="form-text">Leave empty if end date is not determined</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="clientName" class="form-label">Client Name</label>
+                                    <InputText @bind-Value="project.ClientName" class="form-control" id="clientName" 
+                                              placeholder="Enter client/company name" />
+                                    <ValidationMessage For="@(() => project.ClientName)" class="text-danger" />
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="budget" class="form-label">Budget</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">$</span>
+                                        <InputNumber @bind-Value="project.Budget" class="form-control" id="budget" 
+                                                   min="0" step="0.01" placeholder="0.00" />
+                                    </div>
+                                    <div class="form-text">Optional project budget</div>
+                                    <ValidationMessage For="@(() => project.Budget)" class="text-danger" />
+                                </div>
+                            </div>
+                        </div>
+
+                        @if (errorMessage != null)
+                        {
+                            <div class="alert alert-danger">
+                                @errorMessage
+                            </div>
+                        }
+
+                        <div class="d-flex justify-content-between">
+                            <button type="button" class="btn btn-secondary" @onclick="GoBack">Cancel</button>
+                            <button type="submit" class="btn btn-primary" disabled="@isSubmitting">
+                                @if (isSubmitting)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                }
+                                <i class="fas fa-save"></i> Create Project
+                            </button>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6>Project Guidelines</h6>
+                </div>
+                <div class="card-body">
+                    <h6>Project Code Format:</h6>
+                    <ul class="list-unstyled">
+                        <li><i class="fas fa-check text-success me-2"></i><strong>PROJ-YYYY-NNN</strong></li>
+                        <li><small class="text-muted">Example: PROJ-2025-001</small></li>
+                        <li><small class="text-muted">Must be unique across all projects</small></li>
+                    </ul>
+                    
+                    <hr />
+                    
+                    <h6>Required Fields:</h6>
+                    <ul class="list-unstyled">
+                        <li><i class="fas fa-asterisk text-danger me-2" style="font-size: 8px;"></i>Project Code</li>
+                        <li><i class="fas fa-asterisk text-danger me-2" style="font-size: 8px;"></i>Project Name</li>
+                        <li><i class="fas fa-asterisk text-danger me-2" style="font-size: 8px;"></i>Nature of Industry</li>
+                    </ul>
+                    
+                    <hr />
+                    
+                    <h6>Best Practices:</h6>
+                    <ul class="list-unstyled small">
+                        <li><i class="fas fa-lightbulb text-warning me-2"></i>Use descriptive project names</li>
+                        <li><i class="fas fa-lightbulb text-warning me-2"></i>Include key objectives in description</li>
+                        <li><i class="fas fa-lightbulb text-warning me-2"></i>Set realistic start and end dates</li>
+                        <li><i class="fas fa-lightbulb text-warning me-2"></i>Projects start as Active by default</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h6>Project Preview</h6>
+                </div>
+                <div class="card-body">
+                    <dl class="row">
+                        <dt class="col-sm-4">Code:</dt>
+                        <dd class="col-sm-8">
+                            @if (!string.IsNullOrEmpty(project.ProjectCode))
+                            {
+                                <span class="badge bg-primary">@project.ProjectCode</span>
+                            }
+                            else
+                            {
+                                <span class="text-muted">Not set</span>
+                            }
+                        </dd>
+                        
+                        <dt class="col-sm-4">Name:</dt>
+                        <dd class="col-sm-8">
+                            @if (!string.IsNullOrEmpty(project.ProjectName))
+                            {
+                                <strong>@project.ProjectName</strong>
+                            }
+                            else
+                            {
+                                <span class="text-muted">Not set</span>
+                            }
+                        </dd>
+                        
+                        <dt class="col-sm-4">Industry:</dt>
+                        <dd class="col-sm-8">
+                            @if (!string.IsNullOrEmpty(project.NatureOfIndustry))
+                            {
+                                @project.NatureOfIndustry
+                            }
+                            else
+                            {
+                                <span class="text-muted">Not selected</span>
+                            }
+                        </dd>
+                        
+                        <dt class="col-sm-4">Status:</dt>
+                        <dd class="col-sm-8">
+                            @if (project.IsActive)
+                            {
+                                <span class="badge bg-success">Active</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">Inactive</span>
+                            }
+                        </dd>
+                        
+                        <dt class="col-sm-4">Budget:</dt>
+                        <dd class="col-sm-8">
+                            @if (project.Budget.HasValue && project.Budget > 0)
+                            {
+                                <span class="text-success">$@project.Budget.Value.ToString("F2")</span>
+                            }
+                            else
+                            {
+                                <span class="text-muted">Not set</span>
+                            }
+                        </dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private Project project = new() 
+    { 
+        ProjectCode = "",
+        ProjectName = "",
+        NatureOfIndustry = "",
+        IsActive = true,
+        StartDate = DateTime.Today
+    };
+    
+    private bool isSubmitting = false;
+    private string? errorMessage;
+
+    private async Task HandleValidSubmit()
+    {
+        await SaveProject();
+    }
+
+    private async Task HandleInvalidSubmit()
+    {
+        errorMessage = "Please correct the validation errors before submitting.";
+    }
+
+    private async Task SaveProject()
+    {
+        if (string.IsNullOrEmpty(project.ProjectCode))
+        {
+            errorMessage = "Project Code is required.";
+            return;
+        }
+
+        if (string.IsNullOrEmpty(project.ProjectName))
+        {
+            errorMessage = "Project Name is required.";
+            return;
+        }
+
+        if (string.IsNullOrEmpty(project.NatureOfIndustry))
+        {
+            errorMessage = "Nature of Industry is required.";
+            return;
+        }
+
+        if (project.EndDate.HasValue && project.StartDate.HasValue && project.EndDate < project.StartDate)
+        {
+            errorMessage = "End Date cannot be earlier than Start Date.";
+            return;
+        }
+
+        isSubmitting = true;
+        errorMessage = null;
+
+        try
+        {
+            // Check if project code already exists
+            var existingProject = await ProjectService.GetProjectByCodeAsync(project.ProjectCode);
+            if (existingProject != null)
+            {
+                errorMessage = $"Project with code '{project.ProjectCode}' already exists.";
+                return;
+            }
+
+            // Set creation date
+            project.CreatedOn = DateTime.Now;
+
+            // Create the project
+            await ProjectService.CreateProjectAsync(project);
+
+            // Navigate back to index
+            Navigation.NavigateTo("/projects");
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error creating project: {ex.Message}";
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo("/projects");
+    }
+}

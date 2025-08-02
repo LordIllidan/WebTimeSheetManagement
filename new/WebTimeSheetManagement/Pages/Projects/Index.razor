@@ -1,0 +1,259 @@
+@page "/projects"
+@using WebTimeSheetManagement.Services.Interfaces
+@using WebTimeSheetManagement.Models
+@inject IProjectService ProjectService
+@inject NavigationManager Navigation
+
+<PageTitle>Projects - TimeSheet Management</PageTitle>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h1>Projects</h1>
+                <button class="btn btn-primary" @onclick="CreateNewProject">
+                    <i class="fas fa-plus"></i> New Project
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <input type="text" class="form-control" placeholder="Search projects..." @bind="searchTerm"
+                                @onkeyup="OnSearchKeyUp" />
+                        </div>
+                        <div class="col-md-3">
+                            <select class="form-select" @bind="showActiveOnly" @bind:after="OnActiveFilterChanged">
+                                <option value="true">Active Projects Only</option>
+                                <option value="false">All Projects</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <button class="btn btn-secondary" @onclick="LoadProjects">
+                                <i class="fas fa-search"></i> Search
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    @if (isLoading)
+                    {
+                        <div class="text-center">
+                            <div class="spinner-border" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+                    }
+                    else if (projects?.Any() == true)
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Project Code</th>
+                                        <th>Project Name</th>
+                                        <th>Nature of Industry</th>
+                                        <th>Status</th>
+                                        <th>Created On</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var project in projects)
+                                    {
+                                        <tr class="@(project.IsActive ? "" : "table-secondary")">
+                                            <td>
+                                                <span class="badge bg-primary">@project.ProjectCode</span>
+                                            </td>
+                                            <td>
+                                                <strong>@project.ProjectName</strong>
+                                                @if (!string.IsNullOrEmpty(project.Description))
+                                                {
+                                                    <br />
+                                                    <small class="text-muted">@project.Description</small>
+                                                }
+                                            </td>
+                                            <td>@project.NatureOfIndustry</td>
+                                            <td>
+                                                @if (project.IsActive)
+                                                {
+                                                    <span class="badge bg-success">Active</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-secondary">Inactive</span>
+                                                }
+                                            </td>
+                                            <td>@project.CreatedOn.ToString("MM/dd/yyyy")</td>
+                                            <td>
+                                                <div class="btn-group" role="group">
+                                                    <button class="btn btn-sm btn-outline-primary"
+                                                        @onclick="() => ViewProject(project.ProjectId)">
+                                                        <i class="fas fa-eye"></i>
+                                                    </button>
+                                                    <button class="btn btn-sm btn-outline-warning"
+                                                        @onclick="() => EditProject(project.ProjectId)">
+                                                        <i class="fas fa-edit"></i>
+                                                    </button>
+                                                    @if (project.IsActive)
+                                                    {
+                                                        <button class="btn btn-sm btn-outline-secondary"
+                                                            @onclick="() => DeactivateProject(project.ProjectId)">
+                                                            <i class="fas fa-pause"></i>
+                                                        </button>
+                                                    }
+                                                    else
+                                                    {
+                                                        <button class="btn btn-sm btn-outline-success"
+                                                            @onclick="() => ActivateProject(project.ProjectId)">
+                                                            <i class="fas fa-play"></i>
+                                                        </button>
+                                                    }
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Summary Cards -->
+                        <div class="row mt-3">
+                            <div class="col-md-3">
+                                <div class="card bg-light">
+                                    <div class="card-body text-center">
+                                        <h6 class="card-title">Total Projects</h6>
+                                        <h4 class="text-primary">@projects.Count()</h4>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card bg-light">
+                                    <div class="card-body text-center">
+                                        <h6 class="card-title">Active Projects</h6>
+                                        <h4 class="text-success">@projects.Count(p => p.IsActive)</h4>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card bg-light">
+                                    <div class="card-body text-center">
+                                        <h6 class="card-title">Inactive Projects</h6>
+                                        <h4 class="text-secondary">@projects.Count(p => !p.IsActive)</h4>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center py-4">
+                            <i class="fas fa-project-diagram fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">No projects found</h5>
+                            <p class="text-muted">Create your first project to get started.</p>
+                            <button class="btn btn-primary" @onclick="CreateNewProject">
+                                <i class="fas fa-plus"></i> Create Project
+                            </button>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private IEnumerable<Project>? projects;
+    private bool isLoading = true;
+    private string searchTerm = string.Empty;
+    private bool showActiveOnly = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadProjects();
+    }
+
+    private async Task LoadProjects()
+    {
+        isLoading = true;
+        try
+        {
+            if (showActiveOnly)
+            {
+                projects = await ProjectService.GetActiveProjectsAsync();
+            }
+            else
+            {
+                projects = await ProjectService.GetAllProjectsAsync();
+            }
+
+            if (!string.IsNullOrEmpty(searchTerm))
+            {
+                projects = projects.Where(p =>
+                p.ProjectName.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                p.ProjectCode.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                p.NatureOfIndustry.Contains(searchTerm, StringComparison.OrdinalIgnoreCase));
+            }
+        }
+        catch (Exception ex)
+        {
+            // TODO: Add proper error handling and logging
+            Console.WriteLine($"Error loading projects: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task OnSearchKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await LoadProjects();
+        }
+    }
+
+    private async Task OnActiveFilterChanged()
+    {
+        await LoadProjects();
+    }
+
+    private void CreateNewProject()
+    {
+        Navigation.NavigateTo("/projects/create");
+    }
+
+    private void ViewProject(int id)
+    {
+        Navigation.NavigateTo($"/projects/{id}");
+    }
+
+    private void EditProject(int id)
+    {
+        Navigation.NavigateTo($"/projects/edit/{id}");
+    }
+
+    private async Task DeactivateProject(int id)
+    {
+        var success = await ProjectService.DeactivateProjectAsync(id);
+        if (success)
+        {
+            await LoadProjects();
+        }
+    }
+
+    private async Task ActivateProject(int id)
+    {
+        var success = await ProjectService.ActivateProjectAsync(id);
+        if (success)
+        {
+            await LoadProjects();
+        }
+    }
+}

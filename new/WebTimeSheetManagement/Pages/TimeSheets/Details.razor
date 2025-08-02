@@ -1,0 +1,470 @@
+@page "/timesheets/{id:int}"
+@using WebTimeSheetManagement.Services.Interfaces
+@using WebTimeSheetManagement.Models
+@inject ITimeSheetService TimeSheetService
+@inject NavigationManager Navigation
+
+<PageTitle>TimeSheet Details - TimeSheet Management</PageTitle>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h1>TimeSheet Details</h1>
+                <div>
+                    <button class="btn btn-secondary me-2" @onclick="GoBack">
+                        <i class="fas fa-arrow-left"></i> Back to TimeSheets
+                    </button>
+                    @if (timeSheet != null && CanEdit())
+                    {
+                        <button class="btn btn-warning" @onclick="EditTimeSheet">
+                            <i class="fas fa-edit"></i> Edit
+                        </button>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="text-center">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p>Loading timesheet details...</p>
+        </div>
+    }
+    else if (timeSheet == null)
+    {
+        <div class="alert alert-danger">
+            <h4>TimeSheet Not Found</h4>
+            <p>The requested timesheet could not be found.</p>
+            <button class="btn btn-primary" @onclick="GoBack">Go Back</button>
+        </div>
+    }
+    else
+    {
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5>TimeSheet Information</h5>
+                            <span class="badge @GetStatusBadgeClass() fs-6">@timeSheet.Status</span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <dl class="row">
+                                    <dt class="col-sm-4">Employee:</dt>
+                                    <dd class="col-sm-8">@timeSheet.User.Name</dd>
+
+                                    <dt class="col-sm-4">Project:</dt>
+                                    <dd class="col-sm-8">
+                                        <strong>@timeSheet.Project.ProjectName</strong><br />
+                                        <small class="text-muted">@timeSheet.Project.ProjectCode</small>
+                                    </dd>
+
+                                    <dt class="col-sm-4">Week Period:</dt>
+                                    <dd class="col-sm-8">
+                                        @timeSheet.FromDate.ToString("MM/dd/yyyy") -
+                                        @timeSheet.ToDate.ToString("MM/dd/yyyy")
+                                    </dd>
+                                </dl>
+                            </div>
+                            <div class="col-md-6">
+                                <dl class="row">
+                                    <dt class="col-sm-4">Total Hours:</dt>
+                                    <dd class="col-sm-8">
+                                        <span class="badge bg-info fs-6">@timeSheet.TotalHours hrs</span>
+                                    </dd>
+
+                                    <dt class="col-sm-4">Created:</dt>
+                                    <dd class="col-sm-8">@timeSheet.CreatedOn.ToString("MM/dd/yyyy HH:mm")</dd>
+
+                                    @if (timeSheet.SubmittedOn.HasValue)
+                                    {
+                                        <dt class="col-sm-4">Submitted:</dt>
+                                        <dd class="col-sm-8">@timeSheet.SubmittedOn.Value.ToString("MM/dd/yyyy HH:mm")</dd>
+                                    }
+
+                                    @if (timeSheet.ApprovedOn.HasValue)
+                                    {
+                                        <dt class="col-sm-4">Approved:</dt>
+                                        <dd class="col-sm-8">@timeSheet.ApprovedOn.Value.ToString("MM/dd/yyyy HH:mm")</dd>
+                                    }
+                                </dl>
+                            </div>
+                        </div>
+
+                        <h6>Daily Hours Breakdown</h6>
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Day</th>
+                                        <th>Date</th>
+                                        <th class="text-center">Hours</th>
+                                        <th class="text-center">Percentage</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td><strong>Monday</strong></td>
+                                        <td>@timeSheet.FromDate.ToString("MM/dd/yyyy")</td>
+                                        <td class="text-center">
+                                            @if (timeSheet.MondayHours > 0)
+                                            {
+                                                <span class="badge bg-primary">@timeSheet.MondayHours hrs</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">0 hrs</span>
+                                            }
+                                        </td>
+                                        <td class="text-center">@GetDayPercentage(timeSheet.MondayHours)%</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Tuesday</strong></td>
+                                        <td>@timeSheet.FromDate.AddDays(1).ToString("MM/dd/yyyy")</td>
+                                        <td class="text-center">
+                                            @if (timeSheet.TuesdayHours > 0)
+                                            {
+                                                <span class="badge bg-primary">@timeSheet.TuesdayHours hrs</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">0 hrs</span>
+                                            }
+                                        </td>
+                                        <td class="text-center">@GetDayPercentage(timeSheet.TuesdayHours)%</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Wednesday</strong></td>
+                                        <td>@timeSheet.FromDate.AddDays(2).ToString("MM/dd/yyyy")</td>
+                                        <td class="text-center">
+                                            @if (timeSheet.WednesdayHours > 0)
+                                            {
+                                                <span class="badge bg-primary">@timeSheet.WednesdayHours hrs</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">0 hrs</span>
+                                            }
+                                        </td>
+                                        <td class="text-center">@GetDayPercentage(timeSheet.WednesdayHours)%</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Thursday</strong></td>
+                                        <td>@timeSheet.FromDate.AddDays(3).ToString("MM/dd/yyyy")</td>
+                                        <td class="text-center">
+                                            @if (timeSheet.ThursdayHours > 0)
+                                            {
+                                                <span class="badge bg-primary">@timeSheet.ThursdayHours hrs</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">0 hrs</span>
+                                            }
+                                        </td>
+                                        <td class="text-center">@GetDayPercentage(timeSheet.ThursdayHours)%</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Friday</strong></td>
+                                        <td>@timeSheet.FromDate.AddDays(4).ToString("MM/dd/yyyy")</td>
+                                        <td class="text-center">
+                                            @if (timeSheet.FridayHours > 0)
+                                            {
+                                                <span class="badge bg-primary">@timeSheet.FridayHours hrs</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">0 hrs</span>
+                                            }
+                                        </td>
+                                        <td class="text-center">@GetDayPercentage(timeSheet.FridayHours)%</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Saturday</strong></td>
+                                        <td>@timeSheet.FromDate.AddDays(5).ToString("MM/dd/yyyy")</td>
+                                        <td class="text-center">
+                                            @if (timeSheet.SaturdayHours > 0)
+                                            {
+                                                <span class="badge bg-warning text-dark">@timeSheet.SaturdayHours hrs</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">0 hrs</span>
+                                            }
+                                        </td>
+                                        <td class="text-center">@GetDayPercentage(timeSheet.SaturdayHours)%</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Sunday</strong></td>
+                                        <td>@timeSheet.FromDate.AddDays(6).ToString("MM/dd/yyyy")</td>
+                                        <td class="text-center">
+                                            @if (timeSheet.SundayHours > 0)
+                                            {
+                                                <span class="badge bg-warning text-dark">@timeSheet.SundayHours hrs</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">0 hrs</span>
+                                            }
+                                        </td>
+                                        <td class="text-center">@GetDayPercentage(timeSheet.SundayHours)%</td>
+                                    </tr>
+                                </tbody>
+                                <tfoot class="table-light">
+                                    <tr>
+                                        <th colspan="2">Total</th>
+                                        <th class="text-center">
+                                            <span class="badge bg-success fs-6">@timeSheet.TotalHours hrs</span>
+                                        </th>
+                                        <th class="text-center">100%</th>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(timeSheet.Comments))
+                        {
+                            <div class="mt-4">
+                                <h6>Comments</h6>
+                                <div class="card">
+                                    <div class="card-body">
+                                        <p class="mb-0">@timeSheet.Comments</p>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+
+                        @if (!string.IsNullOrEmpty(timeSheet.ApprovalComment))
+                        {
+                            <div class="mt-4">
+                                <h6>Approval Comment</h6>
+                                <div class="card border-@GetApprovalCardBorderClass()">
+                                    <div class="card-body">
+                                        <p class="mb-0">@timeSheet.ApprovalComment</p>
+                                        @if (timeSheet.ApprovedOn.HasValue)
+                                        {
+                                            <small class="text-muted">
+                                                - @timeSheet.ApprovedOn.Value.ToString("MM/dd/yyyy HH:mm")
+                                            </small>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h6>Actions</h6>
+                    </div>
+                    <div class="card-body">
+                        @if (CanEdit())
+                        {
+                            <button class="btn btn-warning btn-sm w-100 mb-2" @onclick="EditTimeSheet">
+                                <i class="fas fa-edit"></i> Edit TimeSheet
+                            </button>
+                        }
+
+                        @if (CanSubmit())
+                        {
+                            <button class="btn btn-success btn-sm w-100 mb-2" @onclick="SubmitForApproval">
+                                <i class="fas fa-paper-plane"></i> Submit for Approval
+                            </button>
+                        }
+
+                        @if (CanApprove())
+                        {
+                            <button class="btn btn-success btn-sm w-100 mb-2" @onclick="ApproveTimeSheet">
+                                <i class="fas fa-check"></i> Approve
+                            </button>
+                            <button class="btn btn-danger btn-sm w-100 mb-2" @onclick="RejectTimeSheet">
+                                <i class="fas fa-times"></i> Reject
+                            </button>
+                        }
+
+                        <button class="btn btn-info btn-sm w-100 mb-2" @onclick="ViewAuditHistory">
+                            <i class="fas fa-history"></i> View History
+                        </button>
+
+                        <hr />
+
+                        <button class="btn btn-outline-primary btn-sm w-100" @onclick="ExportToPdf">
+                            <i class="fas fa-file-pdf"></i> Export to PDF
+                        </button>
+                    </div>
+                </div>
+
+                @if (timeSheet.TotalHours > 40)
+                {
+                    <div class="card mt-3 border-warning">
+                        <div class="card-header bg-warning text-dark">
+                            <h6 class="mb-0">⚠️ Overtime Alert</h6>
+                        </div>
+                        <div class="card-body">
+                            <p class="mb-0">
+                                This timesheet exceeds 40 hours per week.<br />
+                                <strong>Overtime: @(timeSheet.TotalHours - 40) hours</strong>
+                            </p>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private TimeSheet? timeSheet;
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadTimeSheet();
+    }
+
+    private async Task LoadTimeSheet()
+    {
+        try
+        {
+            timeSheet = await TimeSheetService.GetTimeSheetByIdAsync(Id);
+        }
+        catch (Exception ex)
+        {
+            // Handle error
+            Console.WriteLine($"Error loading timesheet: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo("/timesheets");
+    }
+
+    private void EditTimeSheet()
+    {
+        Navigation.NavigateTo($"/timesheets/edit/{Id}");
+    }
+
+    private async Task SubmitForApproval()
+    {
+        if (timeSheet == null) return;
+
+        try
+        {
+            await TimeSheetService.SubmitTimeSheetAsync(timeSheet.TimeSheetId, timeSheet.UserId);
+            await LoadTimeSheet(); // Refresh data
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error submitting timesheet: {ex.Message}");
+        }
+    }
+
+    private async Task ApproveTimeSheet()
+    {
+        if (timeSheet == null) return;
+
+        try
+        {
+            // TODO: Get current user ID from authentication context
+            await TimeSheetService.ApproveTimeSheetAsync(timeSheet.TimeSheetId, 1, "Approved via web interface");
+            await LoadTimeSheet(); // Refresh data
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error approving timesheet: {ex.Message}");
+        }
+    }
+
+    private async Task RejectTimeSheet()
+    {
+        if (timeSheet == null) return;
+
+        try
+        {
+            // TODO: Add modal for rejection reason
+            await TimeSheetService.RejectTimeSheetAsync(timeSheet.TimeSheetId, 1, "Rejected via web interface");
+            await LoadTimeSheet(); // Refresh data
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error rejecting timesheet: {ex.Message}");
+        }
+    }
+
+    private void ViewAuditHistory()
+    {
+        Navigation.NavigateTo($"/timesheets/{Id}/audit");
+    }
+
+    private void ExportToPdf()
+    {
+        // TODO: Implement PDF export
+        Console.WriteLine("Export to PDF functionality - to be implemented");
+    }
+
+    private bool CanEdit()
+    {
+        return timeSheet != null &&
+        (timeSheet.Status == TimeSheetStatus.Draft || timeSheet.Status == TimeSheetStatus.Rejected);
+    }
+
+    private bool CanSubmit()
+    {
+        return timeSheet != null && timeSheet.Status == TimeSheetStatus.Draft;
+    }
+
+    private bool CanApprove()
+    {
+        // TODO: Add proper user authorization logic - only managers/admins
+        return timeSheet != null && timeSheet.Status == TimeSheetStatus.Submitted;
+    }
+
+    private string GetStatusBadgeClass()
+    {
+        if (timeSheet == null) return "bg-secondary";
+
+        return timeSheet.Status.ToString().ToLower() switch
+        {
+            "draft" => "bg-secondary",
+            "submitted" => "bg-warning text-dark",
+            "approved" => "bg-success",
+            "rejected" => "bg-danger",
+            _ => "bg-secondary"
+        };
+    }
+
+    private string GetApprovalCardBorderClass()
+    {
+        if (timeSheet == null) return "secondary";
+
+        return timeSheet.Status.ToString().ToLower() switch
+        {
+            "approved" => "success",
+            "rejected" => "danger",
+            _ => "secondary"
+        };
+    }
+
+    private string GetDayPercentage(int hours)
+    {
+        if (timeSheet?.TotalHours == 0) return "0";
+        return Math.Round((double)hours / timeSheet.TotalHours * 100, 1).ToString("F1");
+    }
+}

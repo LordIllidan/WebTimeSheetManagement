@@ -1,0 +1,384 @@
+@page "/timesheets/edit/{id:int}"
+@using WebTimeSheetManagement.Services.Interfaces
+@using WebTimeSheetManagement.Models
+@inject ITimeSheetService TimeSheetService
+@inject IProjectService ProjectService
+@inject NavigationManager Navigation
+
+<PageTitle>Edit TimeSheet - TimeSheet Management</PageTitle>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h1>Edit TimeSheet</h1>
+                <button class="btn btn-secondary" @onclick="GoBack">
+                    <i class="fas fa-arrow-left"></i> Back to TimeSheets
+                </button>
+            </div>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="text-center">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p>Loading timesheet...</p>
+        </div>
+    }
+    else if (timeSheet == null)
+    {
+        <div class="alert alert-danger">
+            <h4>TimeSheet Not Found</h4>
+            <p>The requested timesheet could not be found or you don't have permission to edit it.</p>
+            <button class="btn btn-primary" @onclick="GoBack">Go Back</button>
+        </div>
+    }
+    else if (!CanEdit())
+    {
+        <div class="alert alert-warning">
+            <h4>Cannot Edit TimeSheet</h4>
+            <p>This timesheet cannot be edited because it has status: <strong>@timeSheet.Status</strong></p>
+            <p>Only Draft and Rejected timesheets can be edited.</p>
+            <button class="btn btn-primary" @onclick="GoBack">Go Back</button>
+        </div>
+    }
+    else
+    {
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Edit TimeSheet Details</h5>
+                        <small class="text-muted">
+                            Status: <span class="badge @GetStatusBadgeClass()">@timeSheet.Status</span> |
+                            Week: @timeSheet.FromDate.ToString("MM/dd/yyyy") - @timeSheet.ToDate.ToString("MM/dd/yyyy")
+                        </small>
+                    </div>
+                    <div class="card-body">
+                        <EditForm Model="timeSheet" OnValidSubmit="HandleValidSubmit" OnInvalidSubmit="HandleInvalidSubmit">
+                            <DataAnnotationsValidator />
+                            <ValidationSummary class="alert alert-danger" />
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="projectId" class="form-label">Project <span class="text-danger">*</span></label>
+                                        <InputSelect @bind-Value="timeSheet.ProjectId" class="form-select" id="projectId">
+                                            <option value="0">Select Project...</option>
+                                            @if (projects != null)
+                                            {
+                                                @foreach (var project in projects)
+                                                {
+                                                    <option value="@project.ProjectId">@project.ProjectName (@project.ProjectCode)</option>
+                                                }
+                                            }
+                                        </InputSelect>
+                                        <ValidationMessage For="@(() => timeSheet.ProjectId)" class="text-danger" />
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="mb-3">
+                                        <label for="weekStart" class="form-label">Week Start Date</label>
+                                        <input type="date" class="form-control" id="weekStart" value="@timeSheet.FromDate.ToString("yyyy-MM-dd")" readonly />
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="mb-3">
+                                        <label for="weekEnd" class="form-label">Week End Date</label>
+                                        <input type="date" class="form-control" id="weekEnd" value="@timeSheet.ToDate.ToString("yyyy-MM-dd")" readonly />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <h6 class="mb-3">Daily Hours</h6>
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th>Monday</th>
+                                                    <th>Tuesday</th>
+                                                    <th>Wednesday</th>
+                                                    <th>Thursday</th>
+                                                    <th>Friday</th>
+                                                    <th>Saturday</th>
+                                                    <th>Sunday</th>
+                                                    <th>Total</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td>
+                                                        <InputNumber @bind-Value="timeSheet.MondayHours" class="form-control text-center" min="0" max="24" @bind:after="CalculateTotal" />
+                                                        <ValidationMessage For="@(() => timeSheet.MondayHours)" class="text-danger small" />
+                                                    </td>
+                                                    <td>
+                                                        <InputNumber @bind-Value="timeSheet.TuesdayHours" class="form-control text-center" min="0" max="24" @bind:after="CalculateTotal" />
+                                                        <ValidationMessage For="@(() => timeSheet.TuesdayHours)" class="text-danger small" />
+                                                    </td>
+                                                    <td>
+                                                        <InputNumber @bind-Value="timeSheet.WednesdayHours" class="form-control text-center" min="0" max="24" @bind:after="CalculateTotal" />
+                                                        <ValidationMessage For="@(() => timeSheet.WednesdayHours)" class="text-danger small" />
+                                                    </td>
+                                                    <td>
+                                                        <InputNumber @bind-Value="timeSheet.ThursdayHours" class="form-control text-center" min="0" max="24" @bind:after="CalculateTotal" />
+                                                        <ValidationMessage For="@(() => timeSheet.ThursdayHours)" class="text-danger small" />
+                                                    </td>
+                                                    <td>
+                                                        <InputNumber @bind-Value="timeSheet.FridayHours" class="form-control text-center" min="0" max="24" @bind:after="CalculateTotal" />
+                                                        <ValidationMessage For="@(() => timeSheet.FridayHours)" class="text-danger small" />
+                                                    </td>
+                                                    <td>
+                                                        <InputNumber @bind-Value="timeSheet.SaturdayHours" class="form-control text-center" min="0" max="24" @bind:after="CalculateTotal" />
+                                                        <ValidationMessage For="@(() => timeSheet.SaturdayHours)" class="text-danger small" />
+                                                    </td>
+                                                    <td>
+                                                        <InputNumber @bind-Value="timeSheet.SundayHours" class="form-control text-center" min="0" max="24" @bind:after="CalculateTotal" />
+                                                        <ValidationMessage For="@(() => timeSheet.SundayHours)" class="text-danger small" />
+                                                    </td>
+                                                    <td class="text-center">
+                                                        <strong class="text-primary">@totalHours hrs</strong>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <div class="mb-3">
+                                        <label for="comment" class="form-label">Comments</label>
+                                        <InputTextArea @bind-Value="timeSheet.Comments" class="form-control" id="comment" rows="3" placeholder="Add any comments about this timesheet..." />
+                                        <ValidationMessage For="@(() => timeSheet.Comments)" class="text-danger" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            @if (errorMessage != null)
+                            {
+                                <div class="alert alert-danger">
+                                    @errorMessage
+                                </div>
+                            }
+
+                            @if (successMessage != null)
+                            {
+                                <div class="alert alert-success">
+                                    @successMessage
+                                </div>
+                            }
+
+                            <div class="d-flex justify-content-between">
+                                <button type="button" class="btn btn-secondary" @onclick="GoBack">Cancel</button>
+                                <div>
+                                    <button type="submit" class="btn btn-primary me-2" disabled="@isSubmitting">
+                                        @if (isSubmitting)
+                                        {
+                                            <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                        }
+                                        <i class="fas fa-save"></i> Save Changes
+                                    </button>
+                                    @if (timeSheet.Status == TimeSheetStatus.Draft)
+                                    {
+                                        <button type="button" class="btn btn-success" @onclick="SaveAndSubmit" disabled="@isSubmitting">
+                                            @if (isSubmitting)
+                                            {
+                                                <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                            }
+                                            <i class="fas fa-paper-plane"></i> Save & Submit
+                                        </button>
+                                    }
+                                </div>
+                            </div>
+                        </EditForm>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h6>TimeSheet Information</h6>
+                    </div>
+                    <div class="card-body">
+                        <dl class="row">
+                            <dt class="col-sm-5">User:</dt>
+                            <dd class="col-sm-7">@timeSheet.User.Name</dd>
+                            
+                            <dt class="col-sm-5">Status:</dt>
+                            <dd class="col-sm-7">
+                                <span class="badge @GetStatusBadgeClass()">@timeSheet.Status</span>
+                            </dd>
+                            
+                            <dt class="col-sm-5">Created:</dt>
+                            <dd class="col-sm-7">@timeSheet.CreatedOn.ToString("MM/dd/yyyy HH:mm")</dd>
+                            
+                            @if (timeSheet.SubmittedOn.HasValue)
+                            {
+                                <dt class="col-sm-5">Submitted:</dt>
+                                <dd class="col-sm-7">@timeSheet.SubmittedOn.Value.ToString("MM/dd/yyyy HH:mm")</dd>
+                            }
+                            
+                            @if (timeSheet.ApprovedOn.HasValue)
+                            {
+                                <dt class="col-sm-5">Approved:</dt>
+                                <dd class="col-sm-7">@timeSheet.ApprovedOn.Value.ToString("MM/dd/yyyy HH:mm")</dd>
+                            }
+                            
+                            <dt class="col-sm-5">Total Hours:</dt>
+                            <dd class="col-sm-7"><strong>@totalHours hrs</strong></dd>
+                        </dl>
+                        
+                        @if (!string.IsNullOrEmpty(timeSheet.ApprovalComment))
+                        {
+                            <hr />
+                            <h6>Approval Comment:</h6>
+                            <p class="text-muted small">@timeSheet.ApprovalComment</p>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public int Id { get; set; }
+    
+    private TimeSheet? timeSheet;
+    private IEnumerable<Project>? projects;
+    private bool isLoading = true;
+    private bool isSubmitting = false;
+    private string? errorMessage;
+    private string? successMessage;
+    private int totalHours => timeSheet?.TotalHours ?? 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadTimeSheet();
+        await LoadProjects();
+    }
+
+    private async Task LoadTimeSheet()
+    {
+        try
+        {
+            timeSheet = await TimeSheetService.GetTimeSheetByIdAsync(Id);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error loading timesheet: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task LoadProjects()
+    {
+        try
+        {
+            projects = await ProjectService.GetActiveProjectsAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error loading projects: {ex.Message}";
+        }
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        await SaveTimeSheet(false);
+    }
+
+    private async Task HandleInvalidSubmit()
+    {
+        errorMessage = "Please correct the validation errors before saving.";
+    }
+
+    private async Task SaveAndSubmit()
+    {
+        await SaveTimeSheet(true);
+    }
+
+    private async Task SaveTimeSheet(bool submit)
+    {
+        if (timeSheet == null) return;
+        
+        if (timeSheet.ProjectId == 0)
+        {
+            errorMessage = "Please select a project.";
+            return;
+        }
+
+        isSubmitting = true;
+        errorMessage = null;
+        successMessage = null;
+
+        try
+        {
+            // Update the timesheet
+            await TimeSheetService.UpdateTimeSheetAsync(timeSheet);
+
+            if (submit && timeSheet.Status == TimeSheetStatus.Draft)
+            {
+                // Submit for approval
+                await TimeSheetService.SubmitTimeSheetAsync(timeSheet.TimeSheetId, timeSheet.UserId);
+                successMessage = "TimeSheet updated and submitted for approval successfully!";
+            }
+            else
+            {
+                successMessage = "TimeSheet updated successfully!";
+            }
+
+            // Refresh the timesheet data
+            await LoadTimeSheet();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error saving timesheet: {ex.Message}";
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+
+    private Task CalculateTotal()
+    {
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo("/timesheets");
+    }
+
+    private bool CanEdit()
+    {
+        return timeSheet != null && 
+               (timeSheet.Status == TimeSheetStatus.Draft || timeSheet.Status == TimeSheetStatus.Rejected);
+    }
+
+    private string GetStatusBadgeClass()
+    {
+        if (timeSheet == null) return "bg-secondary";
+        
+        return timeSheet.Status.ToString().ToLower() switch
+        {
+            "draft" => "bg-secondary",
+            "submitted" => "bg-warning text-dark",
+            "approved" => "bg-success",
+            "rejected" => "bg-danger",
+            _ => "bg-secondary"
+        };
+    }
+}

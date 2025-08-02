@@ -1,0 +1,185 @@
+is_global = true
+build_property.TargetFramework = net9.0
+build_property.TargetFramework = net9.0
+build_property.TargetPlatformMinVersion = 
+build_property.TargetPlatformMinVersion = 
+build_property.UsingMicrosoftNETSdkWeb = true
+build_property.UsingMicrosoftNETSdkWeb = true
+build_property.ProjectTypeGuids = 
+build_property.ProjectTypeGuids = 
+build_property.InvariantGlobalization = 
+build_property.InvariantGlobalization = 
+build_property.PlatformNeutralAssembly = 
+build_property.PlatformNeutralAssembly = 
+build_property.EnforceExtendedAnalyzerRules = 
+build_property.EnforceExtendedAnalyzerRules = 
+build_property._SupportedPlatformList = Linux,macOS,Windows
+build_property._SupportedPlatformList = Linux,macOS,Windows
+build_property.RootNamespace = WebTimeSheetManagement
+build_property.RootNamespace = WebTimeSheetManagement
+build_property.ProjectDir = C:\Nowy folder\WebTimeSheetManagement\new\WebTimeSheetManagement\
+build_property.EnableComHosting = 
+build_property.EnableGeneratedComInterfaceComImportInterop = 
+build_property.RazorLangVersion = 9.0
+build_property.SupportLocalizedComponentNames = 
+build_property.GenerateRazorMetadataSourceChecksumAttributes = 
+build_property.MSBuildProjectDirectory = C:\Nowy folder\WebTimeSheetManagement\new\WebTimeSheetManagement
+build_property._RazorSourceGeneratorDebug = 
+build_property.EffectiveAnalysisLevelStyle = 9.0
+build_property.EnableCodeStyleSeverity = 
+
+[C:/Nowy folder/WebTimeSheetManagement/new/WebTimeSheetManagement/App.razor]
+build_metadata.AdditionalFiles.TargetPath = QXBwLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Nowy folder/WebTimeSheetManagement/new/WebTimeSheetManagement/Pages/Admin/AllExpenses.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQWRtaW5cQWxsRXhwZW5zZXMucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Nowy folder/WebTimeSheetManagement/new/WebTimeSheetManagement/Pages/Admin/AllTimeSheets.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQWRtaW5cQWxsVGltZVNoZWV0cy5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Nowy folder/WebTimeSheetManagement/new/WebTimeSheetManagement/Pages/Admin/AllUsers.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQWRtaW5cQWxsVXNlcnMucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Nowy folder/WebTimeSheetManagement/new/WebTimeSheetManagement/Pages/Admin/Dashboard.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQWRtaW5cRGFzaGJvYXJkLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Nowy folder/WebTimeSheetManagement/new/WebTimeSheetManagement/Pages/Auth/ForgotPassword.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQXV0aFxGb3Jnb3RQYXNzd29yZC5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Nowy folder/WebTimeSheetManagement/new/WebTimeSheetManagement/Pages/Auth/Login.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQXV0aFxMb2dpbi5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Nowy folder/WebTimeSheetManagement/new/WebTimeSheetManagement/Pages/Auth/Register.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQXV0aFxSZWdpc3Rlci5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Nowy folder/WebTimeSheetManagement/new/WebTimeSheetManagement/Pages/Auth/ResetPassword.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQXV0aFxSZXNldFBhc3N3b3JkLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Nowy folder/WebTimeSheetManagement/new/WebTimeSheetManagement/Pages/Counter.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQ291bnRlci5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Nowy folder/WebTimeSheetManagement/new/WebTimeSheetManagement/Pages/Dashboard.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcRGFzaGJvYXJkLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Nowy folder/WebTimeSheetManagement/new/WebTimeSheetManagement/Pages/Expenses/Create.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcRXhwZW5zZXNcQ3JlYXRlLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Nowy folder/WebTimeSheetManagement/new/WebTimeSheetManagement/Pages/Expenses/Delete.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcRXhwZW5zZXNcRGVsZXRlLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Nowy folder/WebTimeSheetManagement/new/WebTimeSheetManagement/Pages/Expenses/Details.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcRXhwZW5zZXNcRGV0YWlscy5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Nowy folder/WebTimeSheetManagement/new/WebTimeSheetManagement/Pages/Expenses/Edit.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcRXhwZW5zZXNcRWRpdC5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Nowy folder/WebTimeSheetManagement/new/WebTimeSheetManagement/Pages/Expenses/Index.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcRXhwZW5zZXNcSW5kZXgucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Nowy folder/WebTimeSheetManagement/new/WebTimeSheetManagement/Pages/Export/ExportCenter.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcRXhwb3J0XEV4cG9ydENlbnRlci5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Nowy folder/WebTimeSheetManagement/new/WebTimeSheetManagement/Pages/Index.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcSW5kZXgucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Nowy folder/WebTimeSheetManagement/new/WebTimeSheetManagement/Pages/Projects/Create.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcUHJvamVjdHNcQ3JlYXRlLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Nowy folder/WebTimeSheetManagement/new/WebTimeSheetManagement/Pages/Projects/Delete.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcUHJvamVjdHNcRGVsZXRlLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Nowy folder/WebTimeSheetManagement/new/WebTimeSheetManagement/Pages/Projects/Details.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcUHJvamVjdHNcRGV0YWlscy5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Nowy folder/WebTimeSheetManagement/new/WebTimeSheetManagement/Pages/Projects/Edit.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcUHJvamVjdHNcRWRpdC5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Nowy folder/WebTimeSheetManagement/new/WebTimeSheetManagement/Pages/Projects/Index.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcUHJvamVjdHNcSW5kZXgucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Nowy folder/WebTimeSheetManagement/new/WebTimeSheetManagement/Pages/TimeSheets/Create.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcVGltZVNoZWV0c1xDcmVhdGUucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Nowy folder/WebTimeSheetManagement/new/WebTimeSheetManagement/Pages/TimeSheets/Delete.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcVGltZVNoZWV0c1xEZWxldGUucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Nowy folder/WebTimeSheetManagement/new/WebTimeSheetManagement/Pages/TimeSheets/Details.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcVGltZVNoZWV0c1xEZXRhaWxzLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Nowy folder/WebTimeSheetManagement/new/WebTimeSheetManagement/Pages/TimeSheets/Edit.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcVGltZVNoZWV0c1xFZGl0LnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Nowy folder/WebTimeSheetManagement/new/WebTimeSheetManagement/Pages/TimeSheets/Index.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcVGltZVNoZWV0c1xJbmRleC5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Nowy folder/WebTimeSheetManagement/new/WebTimeSheetManagement/Pages/Users/Create.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcVXNlcnNcQ3JlYXRlLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Nowy folder/WebTimeSheetManagement/new/WebTimeSheetManagement/Pages/Users/Details.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcVXNlcnNcRGV0YWlscy5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Nowy folder/WebTimeSheetManagement/new/WebTimeSheetManagement/Pages/Users/Edit.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcVXNlcnNcRWRpdC5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Nowy folder/WebTimeSheetManagement/new/WebTimeSheetManagement/Pages/Users/Index.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcVXNlcnNcSW5kZXgucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Nowy folder/WebTimeSheetManagement/new/WebTimeSheetManagement/Pages/Users/Profile.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcVXNlcnNcUHJvZmlsZS5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Nowy folder/WebTimeSheetManagement/new/WebTimeSheetManagement/Shared/SurveyPrompt.razor]
+build_metadata.AdditionalFiles.TargetPath = U2hhcmVkXFN1cnZleVByb21wdC5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Nowy folder/WebTimeSheetManagement/new/WebTimeSheetManagement/_Imports.razor]
+build_metadata.AdditionalFiles.TargetPath = X0ltcG9ydHMucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Nowy folder/WebTimeSheetManagement/new/WebTimeSheetManagement/Shared/MainLayout.razor]
+build_metadata.AdditionalFiles.TargetPath = U2hhcmVkXE1haW5MYXlvdXQucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = b-k4a3x1w8u8
+
+[C:/Nowy folder/WebTimeSheetManagement/new/WebTimeSheetManagement/Shared/NavMenu.razor]
+build_metadata.AdditionalFiles.TargetPath = U2hhcmVkXE5hdk1lbnUucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = b-m4nnp6h7ei
+
+[C:/Nowy folder/WebTimeSheetManagement/new/WebTimeSheetManagement/Pages/Error.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcRXJyb3IuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Nowy folder/WebTimeSheetManagement/new/WebTimeSheetManagement/Pages/_Host.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcX0hvc3QuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 

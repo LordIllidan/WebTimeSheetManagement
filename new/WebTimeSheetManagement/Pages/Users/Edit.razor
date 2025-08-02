@@ -1,0 +1,543 @@
+@page "/users/edit/{id:int}"
+@using WebTimeSheetManagement.Services.Interfaces
+@using WebTimeSheetManagement.Models
+@inject IUserService UserService
+@inject IRoleService RoleService
+@inject NavigationManager Navigation
+
+<PageTitle>Edit User - TimeSheet Management</PageTitle>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h1>Edit User</h1>
+                <button class="btn btn-secondary" @onclick="GoBack">
+                    <i class="fas fa-arrow-left"></i> Back to Users
+                </button>
+            </div>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="text-center">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p>Loading user...</p>
+        </div>
+    }
+    else if (user == null)
+    {
+        <div class="alert alert-danger">
+            <h4>User Not Found</h4>
+            <p>The requested user could not be found or you don't have permission to edit them.</p>
+            <button class="btn btn-primary" @onclick="GoBack">Go Back</button>
+        </div>
+    }
+    else
+    {
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Edit User Details</h5>
+                        <small class="text-muted">
+                            User ID: @user.UserId | Created: @user.CreatedOn.ToString("MM/dd/yyyy") |
+                            Status:
+                            @if (user.IsActive)
+                            {
+                                <span class="badge bg-success">Active</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">Inactive</span>
+                            }
+                        </small>
+                    </div>
+                    <div class="card-body">
+                        <EditForm Model="user" OnValidSubmit="HandleValidSubmit" OnInvalidSubmit="HandleInvalidSubmit">
+                            <DataAnnotationsValidator />
+                            <ValidationSummary class="alert alert-danger" />
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="name" class="form-label">Full Name <span
+                                                class="text-danger">*</span></label>
+                                        <InputText @bind-Value="user.Name" class="form-control" id="name" />
+                                        <ValidationMessage For="@(() => user.Name)" class="text-danger" />
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="username" class="form-label">Username <span
+                                                class="text-danger">*</span></label>
+                                        <InputText @bind-Value="user.Username" class="form-control" id="username" />
+                                        <div class="form-text">Username cannot be changed after creation</div>
+                                        <ValidationMessage For="@(() => user.Username)" class="text-danger" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="email" class="form-label">Email Address <span
+                                                class="text-danger">*</span></label>
+                                        <InputText @bind-Value="user.Email" class="form-control" id="email" type="email" />
+                                        <ValidationMessage For="@(() => user.Email)" class="text-danger" />
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="mobileNumber" class="form-label">Mobile Number</label>
+                                        <InputText @bind-Value="user.MobileNumber" class="form-control" id="mobileNumber" />
+                                        <ValidationMessage For="@(() => user.MobileNumber)" class="text-danger" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="gender" class="form-label">Gender</label>
+                                        <InputSelect @bind-Value="user.Gender" class="form-select" id="gender">
+                                            <option value="">Select Gender...</option>
+                                            <option value="Male">Male</option>
+                                            <option value="Female">Female</option>
+                                            <option value="Other">Other</option>
+                                            <option value="Prefer not to say">Prefer not to say</option>
+                                        </InputSelect>
+                                        <ValidationMessage For="@(() => user.Gender)" class="text-danger" />
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="designation" class="form-label">Designation</label>
+                                        <InputText @bind-Value="user.Designation" class="form-control" id="designation" />
+                                        <ValidationMessage For="@(() => user.Designation)" class="text-danger" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="department" class="form-label">Department</label>
+                                        <InputSelect @bind-Value="user.Department" class="form-select" id="department">
+                                            <option value="">Select Department...</option>
+                                            <option value="IT">Information Technology</option>
+                                            <option value="HR">Human Resources</option>
+                                            <option value="Finance">Finance</option>
+                                            <option value="Marketing">Marketing</option>
+                                            <option value="Sales">Sales</option>
+                                            <option value="Operations">Operations</option>
+                                            <option value="Other">Other</option>
+                                        </InputSelect>
+                                        <ValidationMessage For="@(() => user.Department)" class="text-danger" />
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="roleId" class="form-label">User Role <span
+                                                class="text-danger">*</span></label>
+                                        <InputSelect @bind-Value="selectedRoleId" class="form-select" id="roleId">
+                                            <option value="0">Select Role...</option>
+                                            @if (roles != null)
+                                            {
+                                                @foreach (var role in roles)
+                                                {
+                                                    <option value="@role.RoleId">@role.RoleName</option>
+                                                }
+                                            }
+                                        </InputSelect>
+                                        <ValidationMessage For="@(() => selectedRoleId)" class="text-danger" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <div class="mb-3">
+                                        <div class="form-check">
+                                            <InputCheckbox @bind-Value="user.IsActive" class="form-check-input"
+                                                id="isActive" />
+                                            <label class="form-check-label" for="isActive">
+                                                Active User
+                                            </label>
+                                            <div class="form-text">Inactive users cannot log in to the system</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <hr />
+
+                            <h6>Change Password (Optional)</h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="newPassword" class="form-label">New Password</label>
+                                        <InputText @bind-Value="newPassword" class="form-control" id="newPassword"
+                                            type="password" placeholder="Leave empty to keep current password" />
+                                        <div class="form-text">Minimum 8 characters if changing</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="confirmNewPassword" class="form-label">Confirm New Password</label>
+                                        <InputText @bind-Value="confirmNewPassword" class="form-control"
+                                            id="confirmNewPassword" type="password" placeholder="Confirm new password" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            @if (errorMessage != null)
+                            {
+                                <div class="alert alert-danger">
+                                    @errorMessage
+                                </div>
+                            }
+
+                            @if (successMessage != null)
+                            {
+                                <div class="alert alert-success">
+                                    @successMessage
+                                </div>
+                            }
+
+                            <div class="d-flex justify-content-between">
+                                <button type="button" class="btn btn-secondary" @onclick="GoBack">Cancel</button>
+                                <div>
+                                    <button type="submit" class="btn btn-primary me-2" disabled="@isSubmitting">
+                                        @if (isSubmitting)
+                                        {
+                                            <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                        }
+                                        <i class="fas fa-save"></i> Save Changes
+                                    </button>
+                                    @if (user.IsActive)
+                                    {
+                                        <button type="button" class="btn btn-warning" @onclick="DeactivateUser"
+                                            disabled="@isSubmitting">
+                                            <i class="fas fa-user-slash"></i> Deactivate
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <button type="button" class="btn btn-success" @onclick="ActivateUser"
+                                            disabled="@isSubmitting">
+                                            <i class="fas fa-user-check"></i> Activate
+                                        </button>
+                                    }
+                                </div>
+                            </div>
+                        </EditForm>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h6>User Information</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="text-center mb-3">
+                            <i class="fas fa-user-circle fa-5x text-muted"></i>
+                            <h6 class="mt-2">@user.Name</h6>
+                            <small class="text-muted">@user.Username</small>
+                        </div>
+
+                        <dl class="row">
+                            <dt class="col-sm-5">User ID:</dt>
+                            <dd class="col-sm-7">@user.UserId</dd>
+
+                            <dt class="col-sm-5">Created:</dt>
+                            <dd class="col-sm-7">@user.CreatedOn.ToString("MM/dd/yyyy")</dd>
+
+                            <dt class="col-sm-5">Status:</dt>
+                            <dd class="col-sm-7">
+                                @if (user.IsActive)
+                                {
+                                    <span class="badge bg-success">Active</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">Inactive</span>
+                                }
+                            </dd>
+
+                            <dt class="col-sm-5">Current Role:</dt>
+                            <dd class="col-sm-7">
+                                @if (selectedRoleId > 0 && roles != null)
+                                {
+                                    var role = roles.FirstOrDefault(r => r.RoleId == selectedRoleId);
+                                    if (role != null)
+                                    {
+                                        <span class="badge bg-info">@role.RoleName</span>
+                                    }
+                                }
+                            </dd>
+                        </dl>
+                    </div>
+                </div>
+
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h6>Activity Summary</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row text-center">
+                            <div class="col-6">
+                                <h5 class="text-primary">@totalTimesheets</h5>
+                                <small class="text-muted">TimeSheets</small>
+                            </div>
+                            <div class="col-6">
+                                <h5 class="text-success">@totalExpenses</h5>
+                                <small class="text-muted">Expenses</small>
+                            </div>
+                        </div>
+
+                        <hr />
+
+                        <div class="small text-muted">
+                            <strong>Last Login:</strong>
+                            @if (user.LastLoginDate.HasValue)
+                            {
+                                @user.LastLoginDate.Value.ToString("MM/dd/yyyy HH:mm")
+                            }
+                            else
+                            {
+                                <span>Never</span>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                @if (!user.IsActive)
+                {
+                    <div class="card mt-3 border-warning">
+                        <div class="card-header bg-warning text-dark">
+                            <h6 class="mb-0">⚠️ Inactive User</h6>
+                        </div>
+                        <div class="card-body">
+                            <p class="mb-0">
+                                This user is inactive and cannot log in to the system.
+                                Activate them to restore access.
+                            </p>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private User? user;
+    private IEnumerable<Role>? roles;
+    private int selectedRoleId = 0;
+    private string newPassword = "";
+    private string confirmNewPassword = "";
+    private bool isLoading = true;
+    private bool isSubmitting = false;
+    private string? errorMessage;
+    private string? successMessage;
+    private int totalTimesheets = 0;
+    private int totalExpenses = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUser();
+        await LoadRoles();
+        await LoadUserStatistics();
+    }
+
+    private async Task LoadUser()
+    {
+        try
+        {
+            user = await UserService.GetUserByIdAsync(Id);
+            if (user != null)
+            {
+                // TODO: Get user's current role
+                // selectedRoleId = await UserService.GetUserRoleIdAsync(user.UserId);
+                selectedRoleId = 1; // Temporary default
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error loading user: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task LoadRoles()
+    {
+        try
+        {
+            roles = await RoleService.GetAllRolesAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error loading roles: {ex.Message}";
+        }
+    }
+
+    private async Task LoadUserStatistics()
+    {
+        try
+        {
+            // TODO: Implement these methods
+            // totalTimesheets = await UserService.GetUserTimesheetsCountAsync(Id);
+            // totalExpenses = await UserService.GetUserExpensesCountAsync(Id);
+            totalTimesheets = 0;
+            totalExpenses = 0;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading user statistics: {ex.Message}");
+        }
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        await SaveUser();
+    }
+
+    private async Task HandleInvalidSubmit()
+    {
+        errorMessage = "Please correct the validation errors before saving.";
+    }
+
+    private async Task SaveUser()
+    {
+        if (user == null) return;
+
+        if (string.IsNullOrEmpty(user.Name))
+        {
+            errorMessage = "Full Name is required.";
+            return;
+        }
+
+        if (string.IsNullOrEmpty(user.Username))
+        {
+            errorMessage = "Username is required.";
+            return;
+        }
+
+        if (string.IsNullOrEmpty(user.Email))
+        {
+            errorMessage = "Email address is required.";
+            return;
+        }
+
+        if (selectedRoleId == 0)
+        {
+            errorMessage = "Please select a user role.";
+            return;
+        }
+
+        // Password validation if changing
+        if (!string.IsNullOrEmpty(newPassword))
+        {
+            if (newPassword.Length < 8)
+            {
+                errorMessage = "New password must be at least 8 characters long.";
+                return;
+            }
+
+            if (newPassword != confirmNewPassword)
+            {
+                errorMessage = "New password and confirmation do not match.";
+                return;
+            }
+        }
+
+        isSubmitting = true;
+        errorMessage = null;
+        successMessage = null;
+
+        try
+        {
+            // Check if email is unique (excluding current user)
+            var existingEmailUser = await UserService.GetUserByEmailAsync(user.Email);
+            if (existingEmailUser != null && existingEmailUser.UserId != user.UserId)
+            {
+                errorMessage = $"Email '{user.Email}' is already registered by another user.";
+                return;
+            }
+
+            // Update password if provided
+            if (!string.IsNullOrEmpty(newPassword))
+            {
+                user.Password = newPassword; // TODO: Hash password
+            }
+
+            // Update the user
+            await UserService.UpdateUserAsync(user);
+
+            // Update role if changed
+            // TODO: Implement role assignment
+            // await UserService.AssignRoleAsync(user.UserId, selectedRoleId);
+
+            successMessage = "User updated successfully!";
+
+            // Refresh the user data
+            await LoadUser();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error saving user: {ex.Message}";
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+
+    private async Task DeactivateUser()
+    {
+        if (user == null) return;
+
+        try
+        {
+            user.IsActive = false;
+            await UserService.UpdateUserAsync(user);
+            successMessage = "User deactivated successfully!";
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error deactivating user: {ex.Message}";
+        }
+    }
+
+    private async Task ActivateUser()
+    {
+        if (user == null) return;
+
+        try
+        {
+            user.IsActive = true;
+            await UserService.UpdateUserAsync(user);
+            successMessage = "User activated successfully!";
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error activating user: {ex.Message}";
+        }
+    }
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo("/users");
+    }
+}

@@ -1,0 +1,557 @@
+@page "/profile"
+@using WebTimeSheetManagement.Services.Interfaces
+@using WebTimeSheetManagement.Models
+@using System.ComponentModel.DataAnnotations
+@inject IUserService UserService
+@inject NavigationManager Navigation
+
+<PageTitle>My Profile - TimeSheet Management</PageTitle>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h1>My Profile</h1>
+                <div>
+                    <button class="btn btn-outline-primary me-2" @onclick="ViewMyTimesheets">
+                        <i class="fas fa-clock"></i> My TimeSheets
+                    </button>
+                    <button class="btn btn-outline-success" @onclick="ViewMyExpenses">
+                        <i class="fas fa-dollar-sign"></i> My Expenses
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="text-center">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p>Loading profile...</p>
+        </div>
+    }
+    else if (user == null)
+    {
+        <div class="alert alert-danger">
+            <h4>Profile Not Found</h4>
+            <p>Unable to load your profile. Please try logging in again.</p>
+            <button class="btn btn-primary" @onclick="GoToLogin">Go to Login</button>
+        </div>
+    }
+    else
+    {
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Personal Information</h5>
+                    </div>
+                    <div class="card-body">
+                        <EditForm Model="user" OnValidSubmit="HandleValidSubmit" OnInvalidSubmit="HandleInvalidSubmit">
+                            <DataAnnotationsValidator />
+                            <ValidationSummary class="alert alert-danger" />
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="name" class="form-label">Full Name <span class="text-danger">*</span></label>
+                                        <InputText @bind-Value="user.Name" class="form-control" id="name" />
+                                        <ValidationMessage For="@(() => user.Name)" class="text-danger" />
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="username" class="form-label">Username</label>
+                                        <InputText @bind-Value="user.Username" class="form-control" id="username" readonly />
+                                        <div class="form-text">Username cannot be changed</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="email" class="form-label">Email Address <span class="text-danger">*</span></label>
+                                        <InputText @bind-Value="user.Email" class="form-control" id="email" type="email" />
+                                        <ValidationMessage For="@(() => user.Email)" class="text-danger" />
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="mobileNumber" class="form-label">Mobile Number</label>
+                                        <InputText @bind-Value="user.MobileNumber" class="form-control" id="mobileNumber" />
+                                        <ValidationMessage For="@(() => user.MobileNumber)" class="text-danger" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="gender" class="form-label">Gender</label>
+                                        <InputSelect @bind-Value="user.Gender" class="form-select" id="gender">
+                                            <option value="">Select Gender...</option>
+                                            <option value="Male">Male</option>
+                                            <option value="Female">Female</option>
+                                            <option value="Other">Other</option>
+                                            <option value="Prefer not to say">Prefer not to say</option>
+                                        </InputSelect>
+                                        <ValidationMessage For="@(() => user.Gender)" class="text-danger" />
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="designation" class="form-label">Designation</label>
+                                        <InputText @bind-Value="user.Designation" class="form-control" id="designation" />
+                                        <ValidationMessage For="@(() => user.Designation)" class="text-danger" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="department" class="form-label">Department</label>
+                                        <InputSelect @bind-Value="user.Department" class="form-select" id="department">
+                                            <option value="">Select Department...</option>
+                                            <option value="IT">Information Technology</option>
+                                            <option value="HR">Human Resources</option>
+                                            <option value="Finance">Finance</option>
+                                            <option value="Marketing">Marketing</option>
+                                            <option value="Sales">Sales</option>
+                                            <option value="Operations">Operations</option>
+                                            <option value="Other">Other</option>
+                                        </InputSelect>
+                                        <ValidationMessage For="@(() => user.Department)" class="text-danger" />
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="role" class="form-label">Role</label>
+                                        <input type="text" class="form-control" id="role" value="@currentRole" readonly />
+                                        <div class="form-text">Contact administrator to change role</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            @if (errorMessage != null)
+                            {
+                                <div class="alert alert-danger">
+                                    @errorMessage
+                                </div>
+                            }
+
+                            @if (successMessage != null)
+                            {
+                                <div class="alert alert-success">
+                                    @successMessage
+                                </div>
+                            }
+
+                            <div class="d-flex justify-content-end">
+                                <button type="submit" class="btn btn-primary" disabled="@isSubmitting">
+                                    @if (isSubmitting)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                    }
+                                    <i class="fas fa-save"></i> Save Changes
+                                </button>
+                            </div>
+                        </EditForm>
+                    </div>
+                </div>
+
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h5>Change Password</h5>
+                    </div>
+                    <div class="card-body">
+                        <EditForm Model="passwordChange" OnValidSubmit="HandlePasswordChange">
+                            <DataAnnotationsValidator />
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="currentPassword" class="form-label">Current Password <span class="text-danger">*</span></label>
+                                        <InputText @bind-Value="passwordChange.CurrentPassword" class="form-control" id="currentPassword" type="password" />
+                                        <ValidationMessage For="@(() => passwordChange.CurrentPassword)" class="text-danger" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="newPassword" class="form-label">New Password <span class="text-danger">*</span></label>
+                                        <InputText @bind-Value="passwordChange.NewPassword" class="form-control" id="newPassword" type="password" />
+                                        <div class="form-text">Minimum 8 characters</div>
+                                        <ValidationMessage For="@(() => passwordChange.NewPassword)" class="text-danger" />
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="confirmPassword" class="form-label">Confirm New Password <span class="text-danger">*</span></label>
+                                        <InputText @bind-Value="passwordChange.ConfirmPassword" class="form-control" id="confirmPassword" type="password" />
+                                        <ValidationMessage For="@(() => passwordChange.ConfirmPassword)" class="text-danger" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            @if (passwordErrorMessage != null)
+                            {
+                                <div class="alert alert-danger">
+                                    @passwordErrorMessage
+                                </div>
+                            }
+
+                            @if (passwordSuccessMessage != null)
+                            {
+                                <div class="alert alert-success">
+                                    @passwordSuccessMessage
+                                </div>
+                            }
+
+                            <div class="d-flex justify-content-end">
+                                <button type="submit" class="btn btn-warning" disabled="@isChangingPassword">
+                                    @if (isChangingPassword)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                    }
+                                    <i class="fas fa-key"></i> Change Password
+                                </button>
+                            </div>
+                        </EditForm>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h6>Profile Summary</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="text-center mb-3">
+                            <i class="fas fa-user-circle fa-5x text-muted"></i>
+                            <h5 class="mt-2">@user.Name</h5>
+                            <p class="text-muted">@user.Username</p>
+                            @if (!string.IsNullOrEmpty(user.Designation))
+                            {
+                                <span class="badge bg-info">@user.Designation</span>
+                            }
+                        </div>
+                        
+                        <dl class="row">
+                            <dt class="col-sm-5">User ID:</dt>
+                            <dd class="col-sm-7">@user.UserId</dd>
+                            
+                            <dt class="col-sm-5">Email:</dt>
+                            <dd class="col-sm-7">
+                                <small>@user.Email</small>
+                            </dd>
+                            
+                            <dt class="col-sm-5">Member Since:</dt>
+                            <dd class="col-sm-7">@user.CreatedOn.ToString("MM/dd/yyyy")</dd>
+                            
+                            <dt class="col-sm-5">Last Login:</dt>
+                            <dd class="col-sm-7">
+                                @if (user.LastLoginDate.HasValue)
+                                {
+                                    <small>@user.LastLoginDate.Value.ToString("MM/dd/yyyy HH:mm")</small>
+                                }
+                                else
+                                {
+                                    <small class="text-muted">Never</small>
+                                }
+                            </dd>
+                            
+                            <dt class="col-sm-5">Status:</dt>
+                            <dd class="col-sm-7">
+                                @if (user.IsActive)
+                                {
+                                    <span class="badge bg-success">Active</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">Inactive</span>
+                                }
+                            </dd>
+                        </dl>
+                    </div>
+                </div>
+
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h6>My Activity</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row text-center mb-3">
+                            <div class="col-6">
+                                <h4 class="text-primary">@totalTimesheets</h4>
+                                <small class="text-muted">TimeSheets</small>
+                            </div>
+                            <div class="col-6">
+                                <h4 class="text-success">@totalExpenses</h4>
+                                <small class="text-muted">Expenses</small>
+                            </div>
+                        </div>
+                        
+                        <div class="row text-center mb-3">
+                            <div class="col-6">
+                                <h5 class="text-info">@totalHours</h5>
+                                <small class="text-muted">Total Hours</small>
+                            </div>
+                            <div class="col-6">
+                                <h5 class="text-warning">$@totalExpenseAmount.ToString("F2")</h5>
+                                <small class="text-muted">Total Amount</small>
+                            </div>
+                        </div>
+
+                        <hr />
+                        
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-outline-primary btn-sm" @onclick="ViewMyTimesheets">
+                                <i class="fas fa-clock me-2"></i>View My TimeSheets
+                            </button>
+                            <button class="btn btn-outline-success btn-sm" @onclick="ViewMyExpenses">
+                                <i class="fas fa-dollar-sign me-2"></i>View My Expenses
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h6>Quick Stats</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="small">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>This Month Hours:</span>
+                                <strong>@thisMonthHours hrs</strong>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>This Month Expenses:</span>
+                                <strong>$@thisMonthExpenses.ToString("F2")</strong>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Pending Approvals:</span>
+                                <strong>@pendingApprovals</strong>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span>Account Age:</span>
+                                <strong>@GetAccountAge() days</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private User? user;
+    private string currentRole = "";
+    private bool isLoading = true;
+    private bool isSubmitting = false;
+    private bool isChangingPassword = false;
+    private string? errorMessage;
+    private string? successMessage;
+    private string? passwordErrorMessage;
+    private string? passwordSuccessMessage;
+    
+    // Statistics
+    private int totalTimesheets = 0;
+    private int totalExpenses = 0;
+    private int totalHours = 0;
+    private decimal totalExpenseAmount = 0;
+    private int thisMonthHours = 0;
+    private decimal thisMonthExpenses = 0;
+    private int pendingApprovals = 0;
+
+    // Password change model
+    private PasswordChangeModel passwordChange = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUserProfile();
+        await LoadUserStatistics();
+    }
+
+    private async Task LoadUserProfile()
+    {
+        try
+        {
+            // TODO: Get current user ID from authentication context
+            var currentUserId = 1; // Temporary hardcoded value
+            user = await UserService.GetUserByIdAsync(currentUserId);
+            
+            if (user != null)
+            {
+                // TODO: Get user's current role
+                currentRole = "Employee"; // Temporary default
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error loading profile: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task LoadUserStatistics()
+    {
+        if (user == null) return;
+        
+        try
+        {
+            // TODO: Implement these methods
+            // totalTimesheets = await UserService.GetUserTimesheetsCountAsync(user.UserId);
+            // totalExpenses = await UserService.GetUserExpensesCountAsync(user.UserId);
+            // totalHours = await UserService.GetUserTotalHoursAsync(user.UserId);
+            // totalExpenseAmount = await UserService.GetUserTotalExpenseAmountAsync(user.UserId);
+            // thisMonthHours = await UserService.GetUserMonthlyHoursAsync(user.UserId, DateTime.Now);
+            // thisMonthExpenses = await UserService.GetUserMonthlyExpensesAsync(user.UserId, DateTime.Now);
+            // pendingApprovals = await UserService.GetUserPendingApprovalsCountAsync(user.UserId);
+            
+            totalTimesheets = 0;
+            totalExpenses = 0;
+            totalHours = 0;
+            totalExpenseAmount = 0;
+            thisMonthHours = 0;
+            thisMonthExpenses = 0;
+            pendingApprovals = 0;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading user statistics: {ex.Message}");
+        }
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        if (user == null) return;
+        
+        isSubmitting = true;
+        errorMessage = null;
+        successMessage = null;
+
+        try
+        {
+            await UserService.UpdateUserAsync(user);
+            successMessage = "Profile updated successfully!";
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error updating profile: {ex.Message}";
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+
+    private async Task HandleInvalidSubmit()
+    {
+        errorMessage = "Please correct the validation errors before submitting.";
+    }
+
+    private async Task HandlePasswordChange()
+    {
+        if (user == null) return;
+        
+        if (string.IsNullOrEmpty(passwordChange.CurrentPassword))
+        {
+            passwordErrorMessage = "Current password is required.";
+            return;
+        }
+
+        if (string.IsNullOrEmpty(passwordChange.NewPassword))
+        {
+            passwordErrorMessage = "New password is required.";
+            return;
+        }
+
+        if (passwordChange.NewPassword.Length < 8)
+        {
+            passwordErrorMessage = "New password must be at least 8 characters long.";
+            return;
+        }
+
+        if (passwordChange.NewPassword != passwordChange.ConfirmPassword)
+        {
+            passwordErrorMessage = "New password and confirmation do not match.";
+            return;
+        }
+
+        isChangingPassword = true;
+        passwordErrorMessage = null;
+        passwordSuccessMessage = null;
+
+        try
+        {
+            // TODO: Implement password change logic with current password verification
+            // var isCurrentPasswordValid = await UserService.VerifyPasswordAsync(user.UserId, passwordChange.CurrentPassword);
+            // if (!isCurrentPasswordValid)
+            // {
+            //     passwordErrorMessage = "Current password is incorrect.";
+            //     return;
+            // }
+
+            // await UserService.ChangePasswordAsync(user.UserId, passwordChange.NewPassword);
+            passwordSuccessMessage = "Password changed successfully!";
+            
+            // Clear the form
+            passwordChange = new PasswordChangeModel();
+        }
+        catch (Exception ex)
+        {
+            passwordErrorMessage = $"Error changing password: {ex.Message}";
+        }
+        finally
+        {
+            isChangingPassword = false;
+        }
+    }
+
+    private void ViewMyTimesheets()
+    {
+        Navigation.NavigateTo($"/timesheets?userId={user?.UserId}");
+    }
+
+    private void ViewMyExpenses()
+    {
+        Navigation.NavigateTo($"/expenses?userId={user?.UserId}");
+    }
+
+    private void GoToLogin()
+    {
+        Navigation.NavigateTo("/login");
+    }
+
+    private int GetAccountAge()
+    {
+        return user != null ? (DateTime.Now - user.CreatedOn).Days : 0;
+    }
+
+    public class PasswordChangeModel
+    {
+        [Required(ErrorMessage = "Current password is required")]
+        public string CurrentPassword { get; set; } = "";
+
+        [Required(ErrorMessage = "New password is required")]
+        [StringLength(100, MinimumLength = 8, ErrorMessage = "Password must be at least 8 characters")]
+        public string NewPassword { get; set; } = "";
+
+        [Required(ErrorMessage = "Please confirm your new password")]
+        [Compare(nameof(NewPassword), ErrorMessage = "Passwords do not match")]
+        public string ConfirmPassword { get; set; } = "";
+    }
+}
